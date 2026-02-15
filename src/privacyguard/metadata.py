@@ -6,7 +6,6 @@ device, timestamp, or other identifying information.
 
 from __future__ import annotations
 
-import io
 from pathlib import Path
 
 import cv2
@@ -14,7 +13,6 @@ import numpy as np
 
 try:
     from PIL import Image
-    from PIL.Image import Exif
 
     HAS_PIL = True
 except ImportError:

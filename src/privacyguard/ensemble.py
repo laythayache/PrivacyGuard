@@ -7,7 +7,6 @@ using confidence-weighted voting and NMS across models.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
 
 import numpy as np
 

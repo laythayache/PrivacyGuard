@@ -72,7 +72,12 @@ class Profiler:
         self._start_memory = self._get_memory_mb()
         self._start_time = time.perf_counter()
 
-    def record_frame(self, latency_ms: float, detection_count: int, confidences: list[float] | None = None) -> None:
+    def record_frame(
+        self,
+        latency_ms: float,
+        detection_count: int,
+        confidences: list[float] | None = None,
+    ) -> None:
         """Record metrics for a single frame."""
         mean_conf = float(np.mean(confidences)) if confidences else 0.0
         metric = FrameMetrics(

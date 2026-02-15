@@ -1,4 +1,39 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
 .env
 .venv
+env/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# ONNX models (large binaries)
+*.onnx
+models/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude/

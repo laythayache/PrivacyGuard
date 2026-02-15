@@ -35,24 +35,6 @@
 | **Robustness** | Multi-model ensemble, adaptive blurring, production-tested |
 | **Integration** | 3-line API, CLI tool, easy to embed in existing pipelines |
 
-```
-🎥 Camera/Video → 🔍 Detect (YOLOv8-nano) → 🎨 Anonymize (blur/pixelate/solid)
-                     ↓
-                  📊 Profile (FPS, latency, confidence)
-                     ↓
-                  🔐 Metadata strip (EXIF, IPTC, XMP)
-                     ↓
-                  💾 Output (privacy-compliant)
-
-## Why PrivacyGuard?
-
-| Problem | Solution |
-|---|---|
-| GDPR/CCPA require de-identification *before* storage or transmission | Process at the edge — data never leaves the device unprotected |
-| Real-time video needs low latency (<50ms per frame) | Optimized ONNX inference + threaded capture pipeline |
-| Different regions need different treatment | Per-class anonymization (blur faces, pixelate plates) |
-| Integration is painful | 3-line quick start, CLI tool, and full Python API |
-
 ## Architecture
 
 ```

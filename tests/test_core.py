@@ -1,0 +1,81 @@
+"""Tests for the PrivacyGuard orchestrator.
+
+Uses monkeypatching to avoid loading a real ONNX model.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+import pytest
+
+from privacyguard.core import PrivacyGuard
+from privacyguard.detector import Detection
+
+
+@pytest.fixture
+def guard(monkeypatch, tmp_path):
+    """Create a PrivacyGuard with a mocked detector."""
+    # Create a dummy model file so the FileNotFoundError check passes
+    model_file = tmp_path / "dummy.onnx"
+    model_file.write_bytes(b"")
+
+    # Mock the ONNXDetector.__init__ to skip real ONNX loading
+    from privacyguard import detector
+
+    def mock_init(self, **kwargs):
+        self.model_path = model_file
+        self.input_size = (640, 640)
+        self.conf_threshold = 0.4
+        self.iou_threshold = 0.45
+        self.class_labels = {0: "face", 1: "license_plate"}
+        self.session = None
+
+    monkeypatch.setattr(detector.ONNXDetector, "__init__", mock_init)
+
+    # Mock detect to return predictable results
+    fake_dets = [
+        Detection(x1=100, y1=100, x2=200, y2=200, confidence=0.9, class_id=0, label="face"),
+    ]
+    monkeypatch.setattr(detector.ONNXDetector, "detect", lambda self, frame: fake_dets)
+
+    return PrivacyGuard(model_path=str(model_file))
+
+
+class TestProcessFrame:
+    def test_returns_same_shape(self, guard: PrivacyGuard):
+        frame = np.zeros((480, 640, 3), dtype=np.uint8)
+        result = guard.process_frame(frame)
+        assert result.shape == frame.shape
+        assert result.dtype == frame.dtype
+
+    def test_does_not_mutate_input(self, guard: PrivacyGuard):
+        frame = np.zeros((480, 640, 3), dtype=np.uint8)
+        original = frame.copy()
+        guard.process_frame(frame)
+        assert np.array_equal(frame, original)
+
+    def test_modifies_detected_region(self, guard: PrivacyGuard):
+        # Use a gradient frame so Gaussian blur produces visible change
+        frame2 = np.zeros((480, 640, 3), dtype=np.uint8)
+        frame2[100:200, 100:200] = np.arange(100).reshape(100, 1, 1)
+        result2 = guard.process_frame(frame2)
+        roi_orig = frame2[100:200, 100:200].copy()
+        roi_result = result2[100:200, 100:200]
+        assert not np.array_equal(roi_orig, roi_result)
+
+
+class TestTargetClasses:
+    def test_filters_by_target_class(self, guard: PrivacyGuard):
+        # Set target to only class 1 (license_plate)
+        guard.target_classes = {1}
+        frame = np.zeros((480, 640, 3), dtype=np.uint8)
+        dets = guard.detect(frame)
+        # The mock detector returns class_id=0, so it should be filtered out
+        assert len(dets) == 0
+
+    def test_allows_matching_class(self, guard: PrivacyGuard):
+        guard.target_classes = {0}
+        frame = np.zeros((480, 640, 3), dtype=np.uint8)
+        dets = guard.detect(frame)
+        assert len(dets) == 1
+        assert dets[0].class_id == 0
