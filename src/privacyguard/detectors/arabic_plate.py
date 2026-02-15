@@ -104,6 +104,9 @@ class ArabicPlateDetector:
         Returns:
             Detected script type
         """
+        if detection.label is None:
+            return ScriptType.UNKNOWN
+
         label_lower = detection.label.lower()
 
         if "arabic" in label_lower:

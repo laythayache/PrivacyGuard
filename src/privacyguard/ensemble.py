@@ -168,6 +168,8 @@ class EnsembleDetector:
             # Create merged detection (weighted average)
             if group:
                 avg_conf = np.mean([d.confidence for d in group])
+                # Filter out None labels before joining
+                labels = [d.label for d in group if d.label is not None]
                 merged.append(
                     Detection(
                         x1=int(np.mean([d.x1 for d in group])),
@@ -176,7 +178,7 @@ class EnsembleDetector:
                         y2=int(np.mean([d.y2 for d in group])),
                         confidence=float(avg_conf),
                         class_id=group[0].class_id,
-                        label="+".join(set(d.label for d in group)),
+                        label="+".join(set(labels)) if labels else None,
                     )
                 )
             used.add(i)

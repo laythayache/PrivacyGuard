@@ -73,5 +73,7 @@ module = [
     "onnxruntime",
     "paddleocr",
     "psutil",
+    "PIL",
+    "PIL.*",
 ]
 ignore_missing_imports = true

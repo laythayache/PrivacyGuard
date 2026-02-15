@@ -180,7 +180,7 @@ class ONNXDetector:
         boxes = boxes.astype(int)
 
         confidences = out[:, 4]
-        class_ids = out[:, 5].astype(int)
+        class_ids: np.ndarray = out[:, 5].astype(int)
         return self._apply_nms(boxes, confidences, class_ids)
 
     def _apply_nms(
