@@ -14,6 +14,8 @@ import cv2
 import numpy as np
 import onnxruntime as ort
 
+from .utils.validation import validate_positive, validate_threshold
+
 
 @dataclass(frozen=True)
 class Detection:
@@ -25,7 +27,7 @@ class Detection:
     y2: int
     confidence: float
     class_id: int
-    label: str = ""
+    label: str | None = None
 
 
 class ONNXDetector:
@@ -47,6 +49,12 @@ class ONNXDetector:
         providers: Sequence[str] | None = None,
         class_labels: dict[int, str] | None = None,
     ) -> None:
+        # Validate parameters first
+        validate_threshold(conf_threshold, "conf_threshold")
+        validate_threshold(iou_threshold, "iou_threshold")
+        validate_positive(input_size[0], "input_size[0]")
+        validate_positive(input_size[1], "input_size[1]")
+
         self.model_path = Path(model_path)
         self.input_size = input_size  # (width, height)
         self.conf_threshold = conf_threshold

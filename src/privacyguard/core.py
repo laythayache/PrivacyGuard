@@ -16,6 +16,7 @@ import numpy as np
 from .anonymizer import Anonymizer
 from .detector import Detection, ONNXDetector
 from .stream import VideoStream
+from .utils.validation import validate_non_negative, validate_threshold
 
 if TYPE_CHECKING:
     pass
@@ -93,6 +94,11 @@ class PrivacyGuard:
         batch_processor: BatchProcessorProtocol | None = None,
         monitor: MonitorProtocol | None = None,
     ) -> None:
+        # Validate parameters (detector and anonymizer will also validate)
+        validate_threshold(conf_threshold, "conf_threshold")
+        validate_threshold(iou_threshold, "iou_threshold")
+        validate_non_negative(padding, "padding")
+
         self.detector = ONNXDetector(
             model_path=model_path,
             input_size=input_size,

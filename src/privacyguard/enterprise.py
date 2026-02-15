@@ -146,10 +146,22 @@ class AuditLogger:
         """Load existing logs from file."""
         try:
             with open(self.log_path) as f:
-                _ = json.load(f)
-                # Parse back to AuditLog objects (not yet implemented)
-        except (json.JSONDecodeError, OSError):
-            pass
+                data = json.load(f)
+                for entry in data:
+                    log = AuditLog(
+                        timestamp=entry["timestamp"],
+                        source_file=entry["source"],
+                        output_file=entry["output"],
+                        detections_count=entry["detections"],
+                        processing_time_ms=entry["time_ms"],
+                        anonymization_method=entry["method"],
+                        model_name=entry["model"],
+                        user=entry.get("user", "system"),
+                        status=entry.get("status", "success"),
+                    )
+                    self.logs.append(log)
+        except (json.JSONDecodeError, OSError, KeyError):
+            pass  # Start fresh if file corrupt/missing
 
 
 class BatchProcessor:
@@ -225,7 +237,7 @@ class BatchProcessor:
                         detections_count=len(detections),
                         processing_time_ms=elapsed_ms,
                         anonymization_method=method,
-                        model_name="unknown",
+                        model_name=str(self.guard.detector.model_path),
                     )
 
                 results["successful"] += 1

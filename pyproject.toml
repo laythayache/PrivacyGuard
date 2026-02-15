@@ -39,7 +39,6 @@ dev = [
     "pytest-cov>=4.0",
     "ruff>=0.4",
     "mypy>=1.8",
-    "types-opencv-python>=4.8",
 ]
 
 [project.urls]

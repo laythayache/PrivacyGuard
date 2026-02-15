@@ -12,6 +12,13 @@ from typing import TYPE_CHECKING
 import cv2
 import numpy as np
 
+from .utils.validation import (
+    validate_color,
+    validate_kernel_size,
+    validate_non_negative,
+    validate_positive,
+)
+
 if TYPE_CHECKING:
     from .detector import Detection
 
@@ -53,6 +60,12 @@ class Anonymizer:
         solid_color: tuple[int, int, int] = (0, 0, 0),
         padding: int = 0,
     ) -> None:
+        # Validate parameters first
+        validate_kernel_size(gaussian_ksize, "gaussian_ksize")
+        validate_positive(pixelate_block, "pixelate_block")
+        validate_color(solid_color, "solid_color")
+        validate_non_negative(padding, "padding")
+
         self.method = method
         self.class_methods = class_methods or {}
         self.gaussian_ksize = gaussian_ksize
