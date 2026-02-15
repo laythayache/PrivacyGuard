@@ -51,6 +51,11 @@ class PrivacyGuard:
         target_classes: Sequence[int] | None = None,
         providers: Sequence[str] | None = None,
         padding: int = 0,
+        class_methods: dict[int, str] | None = None,
+        postprocess_hook: callable | None = None,
+        audit_logger: object | None = None,
+        batch_processor: object | None = None,
+        monitor: object | None = None,
     ) -> None:
         self.detector = ONNXDetector(
             model_path=model_path,
@@ -60,8 +65,15 @@ class PrivacyGuard:
             providers=providers,
             class_labels=class_labels,
         )
-        self.anonymizer = Anonymizer(method=Method(method), padding=padding)
+        # Per-class anonymization
+        from .anonymizer import Method
+        cm = {k: Method(v) for k, v in (class_methods or {}).items()}
+        self.anonymizer = Anonymizer(method=Method(method), class_methods=cm, padding=padding)
         self.target_classes = set(target_classes) if target_classes else None
+        self.postprocess_hook = postprocess_hook
+        self.audit_logger = audit_logger
+        self.batch_processor = batch_processor
+        self.monitor = monitor
         self._frame_count = 0
         self._fps = 0.0
 
@@ -78,7 +90,14 @@ class PrivacyGuard:
         """Detect and anonymize a single BGR frame (returns a copy)."""
         out = frame.copy()
         detections = self.detect(out)
-        return self.anonymize(out, detections)
+        result = self.anonymize(out, detections)
+        # Optional post-processing hook
+        if self.postprocess_hook:
+            result = self.postprocess_hook(result, detections)
+        # Optional real-time monitor
+        if self.monitor:
+            self.monitor.record_frame(processing_time_ms=0, detection_count=len(detections))
+        return result
 
     def detect(self, frame: np.ndarray) -> list[Detection]:
         """Run detection only (no anonymization)."""
@@ -102,7 +121,19 @@ class PrivacyGuard:
             raise FileNotFoundError(f"Cannot read image: {input_path}")
         detections = self.detect(frame)
         result = self.anonymize(frame, detections)
+        if self.postprocess_hook:
+            result = self.postprocess_hook(result, detections)
         cv2.imwrite(str(output_path), result)
+        # Optional audit logging
+        if self.audit_logger:
+            self.audit_logger.log_anonymization(
+                source_file=str(input_path),
+                output_file=str(output_path),
+                detections_count=len(detections),
+                processing_time_ms=0,
+                anonymization_method=self.anonymizer.method.value,
+                model_name=str(self.detector.model_path),
+            )
         return detections
 
     # ------------------------------------------------------------------
@@ -134,6 +165,15 @@ class PrivacyGuard:
                     break
                 result = self.process_frame(frame)
                 writer.write(result)
+                if self.audit_logger:
+                    self.audit_logger.log_anonymization(
+                        source_file=str(input_path),
+                        output_file=str(output_path),
+                        detections_count=0,
+                        processing_time_ms=0,
+                        anonymization_method=self.anonymizer.method.value,
+                        model_name=str(self.detector.model_path),
+                    )
                 if show:
                     cv2.imshow("PrivacyGuard", result)
                     if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -178,6 +218,9 @@ class PrivacyGuard:
                     writer.release()
                 if display:
                     cv2.destroyAllWindows()
+        # Optional batch processing
+        if self.batch_processor:
+            self.batch_processor.process_directory(str(source))
 
     def _loop(
         self,

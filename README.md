@@ -8,7 +8,7 @@
     <a href="QUICKSTART.md">Quick Start</a> &nbsp;&bull;&nbsp;
     <a href="ARCHITECTURE.md">Architecture</a> &nbsp;&bull;&nbsp;
     <a href="BENCHMARKS.md">Benchmarks</a> &nbsp;&bull;&nbsp;
-    <a href="#api-reference">API</a> &nbsp;&bull;&nbsp;
+    <a href="src/privacyguard/api_reference.md">API Reference</a> &nbsp;&bull;&nbsp;
     <a href="compliance/">Compliance</a> &nbsp;&bull;&nbsp;
     <a href="COMMUNITY_FIRST.md">Community</a> &nbsp;&bull;&nbsp;
     <a href="CONTRIBUTING.md">Contributing</a>
@@ -230,6 +230,17 @@ result = processor.process_mixed_document(
 - `examples/document_anonymization.py` — Selective document blur
 
 ## Enterprise Features
+
+## 📚 API Reference
+
+See [API Reference](src/privacyguard/api_reference.md) for full class/method documentation and advanced usage examples.
+
+### Advanced Features
+- Per-class anonymization
+- Custom post-processing hooks
+- Batch processing, audit logging, real-time monitoring
+- Compliance watermarking and persistent region masking
+
 
 PrivacyGuard includes **production-ready enterprise capabilities**—all free and open-source:
 
