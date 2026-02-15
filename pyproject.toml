@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "privacyguard"
+version = "0.1.0"
+description = "Privacy-first edge AI de-identification pipeline for real-time video streams."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [
+    {name = "Your Name", email = "you@example.com"},
+]
+keywords = ["privacy", "de-identification", "edge-ai", "yolo", "onnx", "face-detection", "blur", "anonymization"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+    "Topic :: Security",
+]
+dependencies = [
+    "numpy>=1.24",
+    "opencv-python>=4.8",
+    "onnxruntime>=1.16",
+]
+
+[project.optional-dependencies]
+gpu = ["onnxruntime-gpu>=1.16"]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.4",
+    "mypy>=1.8",
+]
+
+[project.urls]
+Homepage = "https://github.com/laythayache/privacyguard"
+Repository = "https://github.com/laythayache/privacyguard"
+Issues = "https://github.com/laythayache/privacyguard/issues"
+
+[project.scripts]
+privacyguard = "privacyguard.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
