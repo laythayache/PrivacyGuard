@@ -16,7 +16,7 @@
     <img alt="Python" src="https://img.shields.io/badge/python-3.9%2B-blue">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
     <img alt="Code style" src="https://img.shields.io/badge/code%20style-ruff-purple">
-    <img alt="Tests" src="https://img.shields.io/badge/tests-24%2F24-brightgreen">
+    <img alt="Tests" src="https://img.shields.io/badge/tests-50%2F50-brightgreen">
     <img alt="Coverage" src="https://img.shields.io/badge/coverage-%3E90%25-brightgreen">
   </p>
 </p>
@@ -155,6 +155,77 @@ privacyguard model.onnx -s input.mp4 -m pixelate -o output.mp4
 # RTSP stream, no preview
 privacyguard model.onnx -s "rtsp://192.168.1.10:554/stream" --no-display -o recording.mp4
 ```
+
+## Regional Detectors (Arabic/Lebanese)
+
+PrivacyGuard includes **specialized detectors for the Middle East market**:
+
+### Arabic License Plate Detection
+Detect and anonymize Arabic and Latin script license plates common in Lebanon and the Gulf.
+
+```python
+from privacyguard.detectors.arabic_plate import ArabicPlateDetector, PlateConfig
+
+config = PlateConfig(model_path="yolov8-arabic-plates.onnx")
+detector = ArabicPlateDetector(config)
+detections = detector.detect(frame)
+```
+
+**Features:**
+- Detects both Arabic (ش-ي) and Latin (A-Z) script plates
+- Script-aware confidence weighting
+- Lebanese plate format validation (2:1 aspect ratio)
+
+### Arabic Text Detection & Anonymization
+Detect and blur Arabic text regions while preserving visual context (for bilingual documents).
+
+```python
+from privacyguard.detectors.text import ArabicTextDetector, TextDetectorConfig
+
+config = TextDetectorConfig(use_paddle_ocr=True)
+detector = ArabicTextDetector(config)
+result = detector.anonymize_text(frame)
+```
+
+**Features:**
+- Arabic + Latin + Mixed script detection
+- PaddleOCR integration (optional, falls back to contour-based detection)
+- Per-script selective blurring
+- Document-aware processing
+
+### Identity Document Anonymization
+Selectively blur ID cards, passports, and driving licenses while **preserving face visibility** for recognition.
+
+```python
+from privacyguard.detectors.document import DocumentDetector, DocumentConfig
+
+config = DocumentConfig(blur_strategy="selective", preserve_face=True)
+detector = DocumentDetector(config)
+result = detector.anonymize_frame(frame)
+```
+
+**Strategies:**
+- `"selective"`: Blur text/numbers, keep face visible
+- `"full"`: Blur entire document
+
+### Multi-Script Processing
+Process bilingual documents (Arabic-French/English) with different strategies per script.
+
+```python
+from privacyguard.detectors.multiscript import MultiScriptProcessor, MultiScriptConfig
+
+processor = MultiScriptProcessor(MultiScriptConfig())
+result = processor.process_mixed_document(
+    frame,
+    arabic_strategy="blur",
+    latin_strategy="preserve"
+)
+```
+
+**Examples:**
+- `examples/arabic_plate_detection.py` — Real-time plate detection
+- `examples/arabic_text_anonymization.py` — Text region anonymization
+- `examples/document_anonymization.py` — Selective document blur
 
 ## Model Setup
 
