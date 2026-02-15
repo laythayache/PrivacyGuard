@@ -69,7 +69,9 @@ class MultiScriptProcessor:
         regions = self.text_detector.detect_text_regions(frame)
 
         script_counts = {script: 0 for script in ScriptType}
-        script_regions = {script: [] for script in ScriptType}
+        script_regions: dict[ScriptType, list[dict[str, Any]]] = {
+            script: [] for script in ScriptType
+        }
 
         for region in regions:
             script = region["script"]

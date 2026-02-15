@@ -6,15 +6,51 @@ This is the primary public API surface. Most users only need this module.
 from __future__ import annotations
 
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import TYPE_CHECKING, Protocol
 
 import cv2
 import numpy as np
 
-from .anonymizer import Anonymizer, Method
+from .anonymizer import Anonymizer
 from .detector import Detection, ONNXDetector
 from .stream import VideoStream
+
+if TYPE_CHECKING:
+    pass
+
+
+class MonitorProtocol(Protocol):
+    """Protocol for monitoring/profiling objects."""
+
+    def record_frame(self, processing_time_ms: float, detection_count: int) -> None:
+        """Record frame processing metrics."""
+        ...
+
+
+class AuditLoggerProtocol(Protocol):
+    """Protocol for audit logging objects."""
+
+    def log_anonymization(
+        self,
+        source_file: str,
+        output_file: str,
+        detections_count: int,
+        processing_time_ms: float,
+        anonymization_method: str,
+        model_name: str,
+    ) -> None:
+        """Log an anonymization operation."""
+        ...
+
+
+class BatchProcessorProtocol(Protocol):
+    """Protocol for batch processing objects."""
+
+    def process_directory(self, source: str) -> None:
+        """Process a directory of images/videos."""
+        ...
 
 
 class PrivacyGuard:
@@ -52,10 +88,10 @@ class PrivacyGuard:
         providers: Sequence[str] | None = None,
         padding: int = 0,
         class_methods: dict[int, str] | None = None,
-        postprocess_hook: callable | None = None,
-        audit_logger: object | None = None,
-        batch_processor: object | None = None,
-        monitor: object | None = None,
+        postprocess_hook: Callable[[np.ndarray, list[Detection]], np.ndarray] | None = None,
+        audit_logger: AuditLoggerProtocol | None = None,
+        batch_processor: BatchProcessorProtocol | None = None,
+        monitor: MonitorProtocol | None = None,
     ) -> None:
         self.detector = ONNXDetector(
             model_path=model_path,
@@ -92,7 +128,7 @@ class PrivacyGuard:
         detections = self.detect(out)
         result = self.anonymize(out, detections)
         # Optional post-processing hook
-        if self.postprocess_hook:
+        if self.postprocess_hook is not None:
             result = self.postprocess_hook(result, detections)
         # Optional real-time monitor
         if self.monitor:
@@ -121,7 +157,7 @@ class PrivacyGuard:
             raise FileNotFoundError(f"Cannot read image: {input_path}")
         detections = self.detect(frame)
         result = self.anonymize(frame, detections)
-        if self.postprocess_hook:
+        if self.postprocess_hook is not None:
             result = self.postprocess_hook(result, detections)
         cv2.imwrite(str(output_path), result)
         # Optional audit logging
@@ -155,7 +191,7 @@ class PrivacyGuard:
         fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
         w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fourcc = cv2.VideoWriter_fourcc(*codec)
+        fourcc = cv2.VideoWriter_fourcc(*codec)  # type: ignore[attr-defined]
         writer = cv2.VideoWriter(str(output_path), fourcc, fps, (w, h))
 
         try:
@@ -208,7 +244,7 @@ class PrivacyGuard:
         with VideoStream(source) as stream:
             if output_path is not None:
                 w, h = stream.frame_size
-                fourcc = cv2.VideoWriter_fourcc(*codec)
+                fourcc = cv2.VideoWriter_fourcc(*codec)  # type: ignore[attr-defined]
                 writer = cv2.VideoWriter(str(output_path), fourcc, stream.fps, (w, h))
 
             try:

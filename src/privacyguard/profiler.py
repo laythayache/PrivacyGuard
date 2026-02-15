@@ -81,7 +81,7 @@ class Profiler:
         """Record metrics for a single frame."""
         mean_conf = float(np.mean(confidences)) if confidences else 0.0
         metric = FrameMetrics(
-            timestamp=time.perf_counter() - self._start_time,
+            timestamp=time.perf_counter() - (self._start_time or 0.0),
             inference_time_ms=latency_ms,
             detection_count=detection_count,
             confidence_mean=mean_conf,
@@ -90,7 +90,7 @@ class Profiler:
 
     def stop(self) -> ProfileReport:
         """End profiling and generate report."""
-        elapsed = time.perf_counter() - self._start_time
+        elapsed = time.perf_counter() - (self._start_time or 0.0)
         peak_mem = self._peak_memory
 
         latencies = [m.inference_time_ms for m in self.metrics]
@@ -123,7 +123,7 @@ class Profiler:
             import psutil
 
             process = psutil.Process()
-            return process.memory_info().rss / 1024 / 1024
+            return float(process.memory_info().rss / 1024 / 1024)
         except ImportError:
             return 0.0
 

@@ -47,7 +47,7 @@ class ArabicTextDetector:
 
         if config.use_paddle_ocr:
             try:
-                from paddleocr import PaddleOCR
+                from paddleocr import PaddleOCR  # type: ignore[import-not-found]
 
                 self.ocr = PaddleOCR(use_angle_cls=True, lang="ar")
             except ImportError:

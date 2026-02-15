@@ -15,7 +15,7 @@ import numpy as np
 import onnxruntime as ort
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class Detection:
     """A single detected region."""
 
@@ -80,7 +80,7 @@ class ONNXDetector:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = img.astype(np.float32) / 255.0
         # HWC -> CHW, add batch dim
-        img = np.transpose(img, (2, 0, 1))[np.newaxis, ...]
+        img = np.transpose(img, (2, 0, 1))[np.newaxis, ...]  # type: ignore[assignment]
         return img, (scale_x, scale_y)
 
     def detect(self, frame: np.ndarray) -> list[Detection]:
@@ -200,7 +200,7 @@ class ONNXDetector:
         if len(indices) == 0:
             return []
 
-        indices = np.array(indices).flatten()
+        indices = np.array(indices).flatten()  # type: ignore[assignment]
         detections: list[Detection] = []
         for i in indices:
             cid = int(class_ids[i])

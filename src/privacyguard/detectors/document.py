@@ -41,7 +41,7 @@ class DocumentDetector:
         """
         self.config = config
         self.face_cascade = cv2.CascadeClassifier(
-            cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+            cv2.data.haarcascades + "haarcascade_frontalface_default.xml"  # type: ignore[attr-defined]
         )
 
     def detect_document_regions(self, frame: np.ndarray) -> list[dict[str, Any]]:
@@ -157,7 +157,7 @@ class DocumentDetector:
 
     @staticmethod
     def _group_lines_to_documents(
-        lines: np.ndarray, frame_shape: tuple[int, int, int]
+        lines: np.ndarray, frame_shape: tuple[int, ...]
     ) -> list[tuple[int, int, int, int]]:
         """Group detected lines into potential document regions.
 

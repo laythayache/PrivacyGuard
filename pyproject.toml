@@ -39,6 +39,7 @@ dev = [
     "pytest-cov>=4.0",
     "ruff>=0.4",
     "mypy>=1.8",
+    "types-opencv-python>=4.8",
 ]
 
 [project.urls]
@@ -67,3 +68,11 @@ select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
 python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "onnxruntime",
+    "paddleocr",
+    "psutil",
+]
+ignore_missing_imports = true

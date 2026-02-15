@@ -10,9 +10,8 @@ These features are free and open-source, but can be monetized through:
 from __future__ import annotations
 
 import json
-import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -147,9 +146,9 @@ class AuditLogger:
         """Load existing logs from file."""
         try:
             with open(self.log_path) as f:
-                data = json.load(f)
-                # Parse back to AuditLog objects
-        except (json.JSONDecodeError, IOError):
+                _ = json.load(f)
+                # Parse back to AuditLog objects (not yet implemented)
+        except (json.JSONDecodeError, OSError):
             pass
 
 
@@ -367,9 +366,9 @@ class CustomRegionMasker:
                 temp = cv2.resize(roi, (w // 16, h // 16))
                 masked = cv2.resize(temp, (w, h), interpolation=cv2.INTER_NEAREST)
             else:
-                masked = np.zeros_like(roi)  # Solid black
+                masked = np.zeros_like(roi)  # type: ignore[assignment]  # Solid black
 
-            result[y1:y2, x1:x2] = masked
+            result[y1:y2, x1:x2] = masked  # type: ignore[assignment]
 
         return result
 
