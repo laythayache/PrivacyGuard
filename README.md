@@ -10,7 +10,7 @@
     <a href="BENCHMARKS.md">Benchmarks</a> &nbsp;&bull;&nbsp;
     <a href="#api-reference">API</a> &nbsp;&bull;&nbsp;
     <a href="compliance/">Compliance</a> &nbsp;&bull;&nbsp;
-    <a href="MONETIZATION.md">Monetization</a> &nbsp;&bull;&nbsp;
+    <a href="COMMUNITY_FIRST.md">Community</a> &nbsp;&bull;&nbsp;
     <a href="CONTRIBUTING.md">Contributing</a>
   </p>
   <p align="center">
@@ -325,18 +325,25 @@ PrivacyGuard includes comprehensive compliance documentation:
 
 ---
 
-## 💰 Monetization
+## 🌍 Community-First & Always Free
 
-**PrivacyGuard is free and open-source.** Use it for commercial products.
+**PrivacyGuard will always be free and open-source.**
 
-See [MONETIZATION.md](MONETIZATION.md) for business models:
-- **SaaS:** Host PrivacyGuard for customers ($50-500/month)
-- **Consulting:** Deploy and customize ($5k-50k per project)
-- **Hardware:** Sell pre-configured "privacy boxes" ($300-500)
-- **Models:** Sell fine-tuned models for regions/industries ($500-20k)
-- **Support:** Training, maintenance, custom development
+Privacy is a human right, not a luxury good. We're building a movement to make privacy accessible for everyone—not a business to extract profit.
 
-**Example:** A security camera company charges $100/camera/month for privacy-compliant recording using PrivacyGuard as the backend.
+### Why Free?
+- **No barriers:** Startups, nonprofits, individuals can implement privacy immediately
+- **No vendor lock-in:** You own your infrastructure, code, and data
+- **Transparent security:** Code auditable by anyone, no hidden business agendas
+- **Community-driven:** Everyone contributes improvements
+
+### How You Can Help
+- **Use it:** Deploy in production at scale (no restrictions)
+- **Contribute:** Code, documentation, examples, translations
+- **Share:** Tell others about privacy-first design
+- **Advocate:** Help shift global privacy culture
+
+**Learn more:** See [COMMUNITY_FIRST.md](COMMUNITY_FIRST.md) for our sustainable model without monetization.
 
 ---
 
