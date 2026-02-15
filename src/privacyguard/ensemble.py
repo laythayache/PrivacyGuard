@@ -2,6 +2,8 @@
 
 Runs multiple detectors in parallel (face, plate, person) and merges results
 using confidence-weighted voting and NMS across models.
+
+Supports regional detectors for Arabic text and documents.
 """
 
 from __future__ import annotations
@@ -11,15 +13,29 @@ from dataclasses import dataclass
 import numpy as np
 
 from .detector import Detection, ONNXDetector
+from .detectors.arabic_plate import ArabicPlateDetector, PlateConfig
+from .detectors.document import DocumentConfig, DocumentDetector
+from .detectors.text import (
+    ArabicTextDetector,
+    TextDetectorConfig,
+)
 
 
 @dataclass(frozen=True)
 class EnsembleConfig:
     """Configuration for ensemble detection."""
 
+    # Standard detectors
     face_model: str | None = None
     plate_model: str | None = None
     person_model: str | None = None
+
+    # Regional detectors
+    enable_arabic_plate: bool = False
+    enable_text_detection: bool = False
+    enable_document_detection: bool = False
+
+    # Thresholds
     confidence_threshold: float = 0.4
     nms_threshold: float = 0.45
     ensemble_mode: str = "union"  # "union" | "intersection" | "weighted_vote"
@@ -71,8 +87,23 @@ class EnsembleDetector:
                 class_labels={0: "person"},
             )
 
-        if not self.detectors:
-            raise ValueError("At least one model must be configured")
+        # Regional detectors (non-ONNX)
+        self.regional_detectors: dict[str, object] = {}
+
+        if config.enable_arabic_plate:
+            plate_config = PlateConfig(confidence_threshold=config.confidence_threshold)
+            self.regional_detectors["arabic_plate"] = ArabicPlateDetector(plate_config, providers)
+
+        if config.enable_text_detection:
+            text_config = TextDetectorConfig(confidence_threshold=config.confidence_threshold)
+            self.regional_detectors["text"] = ArabicTextDetector(text_config)
+
+        if config.enable_document_detection:
+            doc_config = DocumentConfig(confidence_threshold=config.confidence_threshold)
+            self.regional_detectors["document"] = DocumentDetector(doc_config)
+
+        if not self.detectors and not self.regional_detectors:
+            raise ValueError("At least one detector must be configured")
 
     def detect(self, frame: np.ndarray) -> list[Detection]:
         """Run all detectors in parallel and merge results."""
