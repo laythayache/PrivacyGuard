@@ -9,6 +9,8 @@
     <a href="ARCHITECTURE.md">Architecture</a> &nbsp;&bull;&nbsp;
     <a href="BENCHMARKS.md">Benchmarks</a> &nbsp;&bull;&nbsp;
     <a href="#api-reference">API</a> &nbsp;&bull;&nbsp;
+    <a href="compliance/">Compliance</a> &nbsp;&bull;&nbsp;
+    <a href="MONETIZATION.md">Monetization</a> &nbsp;&bull;&nbsp;
     <a href="CONTRIBUTING.md">Contributing</a>
   </p>
   <p align="center">
@@ -226,6 +228,117 @@ result = processor.process_mixed_document(
 - `examples/arabic_plate_detection.py` — Real-time plate detection
 - `examples/arabic_text_anonymization.py` — Text region anonymization
 - `examples/document_anonymization.py` — Selective document blur
+
+## Enterprise Features
+
+PrivacyGuard includes **production-ready enterprise capabilities**—all free and open-source:
+
+### Audit Logging (Compliance)
+Track all anonymization operations for audits:
+
+```python
+from privacyguard.enterprise import AuditLogger
+
+logger = AuditLogger("audit_trail.json")
+logger.log_anonymization(
+    source_file="video.mp4",
+    output_file="anonymized.mp4",
+    detections_count=42,
+    processing_time_ms=33,
+    anonymization_method="gaussian",
+    model_name="yolov8-face"
+)
+
+# Generate compliance report
+report = logger.get_compliance_report()
+# → {"total_operations": 1000, "total_detections": 42000, ...}
+```
+
+### Batch Processing (Scale)
+Process thousands of files with progress tracking:
+
+```python
+from privacyguard.enterprise import BatchProcessor
+
+processor = BatchProcessor("model.onnx", output_dir="anonymized/")
+results = processor.process_directory("images/", pattern="*.jpg")
+# → {"total_files": 500, "successful": 495, "failed": 5, "total_time_sec": 120}
+```
+
+### Real-Time Monitoring (Production)
+Monitor FPS, latency, and performance anomalies:
+
+```python
+from privacyguard.enterprise import RealTimeMonitor
+
+monitor = RealTimeMonitor("camera_1")
+
+for frame in stream:
+    start = time.time()
+    result = guard.process_frame(frame)
+    elapsed_ms = (time.time() - start) * 1000
+
+    monitor.record_frame(elapsed_ms, len(result))
+
+    stats = monitor.get_stats()
+    print(f"FPS: {stats['fps']:.1f}, P95: {stats['p95_latency_ms']:.1f}ms")
+
+    if monitor.should_alert(fps_threshold=20):
+        send_alert("Performance degraded!")
+```
+
+### Custom Region Masking (Flexibility)
+Define zones that should always be anonymized:
+
+```python
+from privacyguard.enterprise import CustomRegionMasker
+
+masker = CustomRegionMasker()
+masker.add_region("company_logo", x1=0, y1=0, x2=200, y2=100, method="solid")
+masker.add_region("door_sign", x1=500, y1=200, x2=700, y2=400, method="gaussian")
+
+result = masker.apply_masks(frame)
+masker.save_config("regions.json")  # Reuse later
+```
+
+### Compliance Watermark (Legal proof)
+Add badges proving compliance:
+
+```python
+from privacyguard.enterprise import ComplianceWatermark
+
+result = ComplianceWatermark.add_compliance_badge(frame, text="GDPR COMPLIANT")
+# → Frame with green badge + timestamp
+```
+
+---
+
+## 📋 Compliance Ready
+
+PrivacyGuard includes comprehensive compliance documentation:
+
+- **[GDPR Compliance](compliance/GDPR_COMPLIANCE.md)** — Article-by-article checklist
+- **[CCPA Compliance](compliance/CCPA_COMPLIANCE.md)** — California/CPRA guidance
+- **Audit templates** — Ready-to-use documentation for regulators
+
+**Zero personal data transmission = automatic compliance.**
+
+---
+
+## 💰 Monetization
+
+**PrivacyGuard is free and open-source.** Use it for commercial products.
+
+See [MONETIZATION.md](MONETIZATION.md) for business models:
+- **SaaS:** Host PrivacyGuard for customers ($50-500/month)
+- **Consulting:** Deploy and customize ($5k-50k per project)
+- **Hardware:** Sell pre-configured "privacy boxes" ($300-500)
+- **Models:** Sell fine-tuned models for regions/industries ($500-20k)
+- **Support:** Training, maintenance, custom development
+
+**Example:** A security camera company charges $100/camera/month for privacy-compliant recording using PrivacyGuard as the backend.
+
+---
 
 ## Model Setup
 
