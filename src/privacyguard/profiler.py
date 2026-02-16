@@ -71,6 +71,7 @@ class Profiler:
         gc.collect()
         self._start_memory = self._get_memory_mb()
         self._start_time = time.perf_counter()
+        self._peak_memory = 0.0
 
     def record_frame(
         self,
@@ -87,10 +88,12 @@ class Profiler:
             confidence_mean=mean_conf,
         )
         self.metrics.append(metric)
+        self._update_peak_memory()
 
     def stop(self) -> ProfileReport:
         """End profiling and generate report."""
         elapsed = time.perf_counter() - (self._start_time or 0.0)
+        self._update_peak_memory()
         peak_mem = self._peak_memory
 
         latencies = [m.inference_time_ms for m in self.metrics]
@@ -100,9 +103,8 @@ class Profiler:
         mean_latency = float(np.mean(latencies)) if latencies else 0.0
         p95_latency = float(np.percentile(latencies_sorted, 95)) if latencies else 0.0
         p99_latency = float(np.percentile(latencies_sorted, 99)) if latencies else 0.0
-        mean_conf = float(
-            np.mean([m.confidence_mean for m in self.metrics if m.confidence_mean > 0])
-        )
+        nonzero_conf = [m.confidence_mean for m in self.metrics if m.confidence_mean > 0]
+        mean_conf = float(np.mean(nonzero_conf)) if nonzero_conf else 0.0
 
         return ProfileReport(
             total_frames=len(self.metrics),
@@ -126,6 +128,14 @@ class Profiler:
             return float(process.memory_info().rss / 1024 / 1024)
         except ImportError:
             return 0.0
+
+    def _update_peak_memory(self) -> None:
+        """Track peak memory usage above the start baseline."""
+        current = self._get_memory_mb()
+        baseline = self._start_memory or 0.0
+        delta = max(0.0, current - baseline)
+        if delta > self._peak_memory:
+            self._peak_memory = delta
 
     @staticmethod
     def timeit(func: Callable, *args, **kwargs) -> tuple[float, object]:

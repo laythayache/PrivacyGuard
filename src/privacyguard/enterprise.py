@@ -42,7 +42,6 @@ class AuditLogger:
 
     Features:
     - JSON audit trail (queryable)
-    - CSV export (Excel-ready)
     - Compliance metrics
     - Anomaly detection
 
@@ -53,7 +52,7 @@ class AuditLogger:
         """Initialize audit logger.
 
         Args:
-            log_path: Path to audit log file (JSON or CSV)
+            log_path: Path to JSON audit log file
         """
         self.log_path = Path(log_path)
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -301,10 +300,11 @@ class RealTimeMonitor:
         if not self.frame_times:
             return {}
 
-        fps = 1000.0 / np.mean(self.frame_times)
+        mean_latency = float(np.mean(self.frame_times))
+        fps = 1000.0 / mean_latency if mean_latency > 0 else 0.0
         return {
             "fps": float(fps),
-            "avg_latency_ms": float(np.mean(self.frame_times)),
+            "avg_latency_ms": mean_latency,
             "p95_latency_ms": float(np.percentile(self.frame_times, 95)),
             "p99_latency_ms": float(np.percentile(self.frame_times, 99)),
             "avg_detections": float(np.mean(self.detection_counts)),
@@ -368,19 +368,30 @@ class CustomRegionMasker:
             x1, y1, x2, y2 = region["bbox"]
             method = region["method"]
 
-            roi = result[y1:y2, x1:x2]
+            if x2 <= x1 or y2 <= y1:
+                continue
 
+            roi = result[y1:y2, x1:x2]
+            if roi.size == 0:
+                continue
+
+            masked: np.ndarray
             if method == "gaussian":
-                masked = cv2.GaussianBlur(roi, (31, 31), 0)
+                masked = np.asarray(cv2.GaussianBlur(roi, (31, 31), 0), dtype=np.uint8)
             elif method == "pixelate":
                 # Pixelate: resize down then up
                 h, w = roi.shape[:2]
-                temp = cv2.resize(roi, (w // 16, h // 16))
-                masked = cv2.resize(temp, (w, h), interpolation=cv2.INTER_NEAREST)
+                down_w = max(1, w // 16)
+                down_h = max(1, h // 16)
+                temp = cv2.resize(roi, (down_w, down_h))
+                masked = np.asarray(
+                    cv2.resize(temp, (w, h), interpolation=cv2.INTER_NEAREST),
+                    dtype=np.uint8,
+                )
             else:
-                masked = np.zeros_like(roi)  # type: ignore[assignment]  # Solid black
+                masked = np.zeros_like(roi)
 
-            result[y1:y2, x1:x2] = masked  # type: ignore[assignment]
+            result[y1:y2, x1:x2] = masked
 
         return result
 
@@ -407,7 +418,6 @@ class ComplianceWatermark:
     """Add watermarks to prove compliance.
 
     Features:
-    - Invisible watermark (steganography)
     - Visible compliance badge
     - Timestamp proof
 
@@ -435,7 +445,8 @@ class ComplianceWatermark:
         overlay = result.copy()
         cv2.rectangle(overlay, (10, 10), (w - 10, 80), (0, 255, 0), -1)
 
-        result = cv2.addWeighted(overlay, opacity, result, 1 - opacity, 0)
+        blended = cv2.addWeighted(overlay, opacity, result, 1 - opacity, 0)
+        result = np.asarray(blended, dtype=np.uint8)
 
         # Add text
         cv2.putText(

@@ -18,8 +18,8 @@
     <img alt="Python" src="https://img.shields.io/badge/python-3.9%2B-blue">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
     <img alt="Code style" src="https://img.shields.io/badge/code%20style-ruff-purple">
-    <img alt="Tests" src="https://img.shields.io/badge/tests-50%2F50-brightgreen">
-    <img alt="Coverage" src="https://img.shields.io/badge/coverage-%3E90%25-brightgreen">
+    <img alt="Tests" src="https://img.shields.io/badge/tests-87%2F87-brightgreen">
+    <img alt="Coverage" src="https://img.shields.io/badge/coverage-67%25-yellow">
   </p>
 </p>
 
@@ -286,10 +286,11 @@ monitor = RealTimeMonitor("camera_1")
 
 for frame in stream:
     start = time.time()
-    result = guard.process_frame(frame)
+    detections = guard.detect(frame)
+    result = guard.anonymize(frame, detections)
     elapsed_ms = (time.time() - start) * 1000
 
-    monitor.record_frame(elapsed_ms, len(result))
+    monitor.record_frame(elapsed_ms, len(detections))
 
     stats = monitor.get_stats()
     print(f"FPS: {stats['fps']:.1f}, P95: {stats['p95_latency_ms']:.1f}ms")

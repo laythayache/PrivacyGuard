@@ -32,7 +32,7 @@ storage.save(anonymized)  # Only this is stored
 
 ### Strategy 2: Metadata Stripping
 ```python
-from privacyguard.detectors.metadata import MetadataStripper
+from privacyguard.metadata import MetadataStripper
 
 stripper = MetadataStripper()
 stripper.strip_image("photo.jpg", "clean.jpg")

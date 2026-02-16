@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "privacyguard"
-version = "0.1.0"
+version = "0.2.0"
 description = "Privacy-first edge AI de-identification pipeline for real-time video streams."
 readme = "README.md"
 license = {text = "MIT"}

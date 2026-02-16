@@ -1,4 +1,4 @@
-"""Arabic language support for regional anonymization.
+﻿"""Arabic language support for regional anonymization.
 
 Handles:
 - Script detection (Arabic vs Latin)
@@ -36,7 +36,7 @@ class ArabicProcessor:
 
     # Lebanese license plate patterns
     LEBANESE_PLATE_PATTERNS = [
-        r"[ش-ي]{1,2}\s?\d{1,6}",  # Arabic numerals with Arabic letters
+        r"[ش-ي]{1,2}\s?\d{1,6}",  # Arabic letters with numerals
         r"[A-Z]{1,3}\s?\d{1,6}",  # Latin letters (French plates)
     ]
 
@@ -73,17 +73,14 @@ class ArabicProcessor:
         # Threshold: > 70% is pure script
         if arabic_ratio > 0.7:
             return ScriptType.ARABIC
-        elif latin_ratio > 0.7:
+        if latin_ratio > 0.7:
             return ScriptType.LATIN
-        else:
-            return ScriptType.MIXED
+        return ScriptType.MIXED
 
     @staticmethod
     def is_likely_lebanese_plate(text: str) -> bool:
         """Check if text matches Lebanese license plate format."""
-        return any(
-            re.match(pattern, text) for pattern in ArabicProcessor.LEBANESE_PLATE_PATTERNS
-        )
+        return any(re.match(pattern, text) for pattern in ArabicProcessor.LEBANESE_PLATE_PATTERNS)
 
     @staticmethod
     def extract_arabic_text_regions(text: str) -> list[tuple[int, int, str]]:

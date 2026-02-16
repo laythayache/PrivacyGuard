@@ -68,10 +68,10 @@ class MetadataStripper:
         # Replace common patterns
         import re
 
-        safe_name = re.sub(r"\\d{8}_\\d{6}", "anonymized", name)  # Timestamp
-        safe_name = re.sub(r"IMG_\\d+", "image", safe_name)  # Apple IMG_xxxx
+        safe_name = re.sub(r"\d{8}_\d{6}", "anonymized", name)  # Timestamp
+        safe_name = re.sub(r"IMG_\d+", "image", safe_name, flags=re.IGNORECASE)  # Apple IMG_xxxx
         safe_name = re.sub(
-            r"[A-Z]{2}-\\d+", "anonymized", safe_name
+            r"[A-Z]{2}-\d+", "anonymized", safe_name
         )  # License plate patterns
         safe_name = safe_name.lower().replace(" ", "_")
 

@@ -29,7 +29,7 @@ Use this document to demonstrate GDPR compliance when deploying PrivacyGuard.
 
 ### Metadata Protection
 ```python
-from privacyguard.detectors.document import MetadataStripper
+from privacyguard.metadata import MetadataStripper
 
 # Remove all identifying metadata
 stripper = MetadataStripper()

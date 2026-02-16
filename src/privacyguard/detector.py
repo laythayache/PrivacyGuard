@@ -193,34 +193,39 @@ class ONNXDetector:
         if len(boxes) == 0:
             return []
 
-        # OpenCV NMS expects (x, y, w, h)
-        xywh = boxes.copy()
-        xywh[:, 2] = boxes[:, 2] - boxes[:, 0]
-        xywh[:, 3] = boxes[:, 3] - boxes[:, 1]
-
-        indices = cv2.dnn.NMSBoxes(
-            xywh.tolist(),
-            confidences.tolist(),
-            self.conf_threshold,
-            self.iou_threshold,
-        )
-
-        if len(indices) == 0:
-            return []
-
-        indices = np.array(indices).flatten()  # type: ignore[assignment]
         detections: list[Detection] = []
-        for i in indices:
-            cid = int(class_ids[i])
-            detections.append(
-                Detection(
-                    x1=int(boxes[i, 0]),
-                    y1=int(boxes[i, 1]),
-                    x2=int(boxes[i, 2]),
-                    y2=int(boxes[i, 3]),
-                    confidence=float(confidences[i]),
-                    class_id=cid,
-                    label=self.class_labels.get(cid, f"class_{cid}"),
-                )
+        for cid in np.unique(class_ids):
+            class_mask = class_ids == cid
+            class_boxes = boxes[class_mask]
+            class_confidences = confidences[class_mask]
+            class_indices = np.where(class_mask)[0]
+
+            # OpenCV NMS expects (x, y, w, h)
+            xywh = class_boxes.copy()
+            xywh[:, 2] = class_boxes[:, 2] - class_boxes[:, 0]
+            xywh[:, 3] = class_boxes[:, 3] - class_boxes[:, 1]
+
+            keep = cv2.dnn.NMSBoxes(
+                xywh.tolist(),
+                class_confidences.tolist(),
+                self.conf_threshold,
+                self.iou_threshold,
             )
-        return detections
+            if len(keep) == 0:
+                continue
+
+            keep_indices = np.array(keep).flatten()
+            for idx in keep_indices:
+                original_idx = int(class_indices[int(idx)])
+                detections.append(
+                    Detection(
+                        x1=int(boxes[original_idx, 0]),
+                        y1=int(boxes[original_idx, 1]),
+                        x2=int(boxes[original_idx, 2]),
+                        y2=int(boxes[original_idx, 3]),
+                        confidence=float(confidences[original_idx]),
+                        class_id=int(cid),
+                        label=self.class_labels.get(int(cid), f"class_{int(cid)}"),
+                    )
+                )
+        return sorted(detections, key=lambda d: d.confidence, reverse=True)

@@ -130,15 +130,16 @@ class PrivacyGuard:
 
     def process_frame(self, frame: np.ndarray) -> np.ndarray:
         """Detect and anonymize a single BGR frame (returns a copy)."""
-        out = frame.copy()
-        detections = self.detect(out)
-        result = self.anonymize(out, detections)
+        result, detections, elapsed_ms = self._process_frame_with_metrics(frame)
         # Optional post-processing hook
         if self.postprocess_hook is not None:
             result = self.postprocess_hook(result, detections)
         # Optional real-time monitor
         if self.monitor:
-            self.monitor.record_frame(processing_time_ms=0, detection_count=len(detections))
+            self.monitor.record_frame(
+                processing_time_ms=elapsed_ms,
+                detection_count=len(detections),
+            )
         return result
 
     def detect(self, frame: np.ndarray) -> list[Detection]:
@@ -161,8 +162,7 @@ class PrivacyGuard:
         frame = cv2.imread(str(input_path))
         if frame is None:
             raise FileNotFoundError(f"Cannot read image: {input_path}")
-        detections = self.detect(frame)
-        result = self.anonymize(frame, detections)
+        result, detections, elapsed_ms = self._process_frame_with_metrics(frame)
         if self.postprocess_hook is not None:
             result = self.postprocess_hook(result, detections)
         cv2.imwrite(str(output_path), result)
@@ -172,7 +172,7 @@ class PrivacyGuard:
                 source_file=str(input_path),
                 output_file=str(output_path),
                 detections_count=len(detections),
-                processing_time_ms=0,
+                processing_time_ms=elapsed_ms,
                 anonymization_method=self.anonymizer.method.value,
                 model_name=str(self.detector.model_path),
             )
@@ -205,14 +205,21 @@ class PrivacyGuard:
                 ret, frame = cap.read()
                 if not ret:
                     break
-                result = self.process_frame(frame)
+                result, detections, elapsed_ms = self._process_frame_with_metrics(frame)
+                if self.postprocess_hook is not None:
+                    result = self.postprocess_hook(result, detections)
+                if self.monitor:
+                    self.monitor.record_frame(
+                        processing_time_ms=elapsed_ms,
+                        detection_count=len(detections),
+                    )
                 writer.write(result)
                 if self.audit_logger:
                     self.audit_logger.log_anonymization(
                         source_file=str(input_path),
                         output_file=str(output_path),
-                        detections_count=0,
-                        processing_time_ms=0,
+                        detections_count=len(detections),
+                        processing_time_ms=elapsed_ms,
                         anonymization_method=self.anonymizer.method.value,
                         model_name=str(self.detector.model_path),
                     )
@@ -303,3 +310,14 @@ class PrivacyGuard:
                 cv2.imshow("PrivacyGuard", result)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
+
+    def _process_frame_with_metrics(
+        self, frame: np.ndarray
+    ) -> tuple[np.ndarray, list[Detection], float]:
+        """Process a frame and return output, detections, and latency in ms."""
+        start = time.perf_counter()
+        out = frame.copy()
+        detections = self.detect(out)
+        result = self.anonymize(out, detections)
+        elapsed_ms = (time.perf_counter() - start) * 1000.0
+        return result, detections, elapsed_ms

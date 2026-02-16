@@ -332,6 +332,13 @@ class TestRealTimeMonitor:
         # Should not alert when threshold is low
         assert not monitor.should_alert(fps_threshold=5.0)
 
+    def test_get_stats_with_zero_latency(self):
+        """Zero-latency samples should not produce infinite FPS."""
+        monitor = RealTimeMonitor()
+        monitor.record_frame(processing_time_ms=0.0, detection_count=1)
+        stats = monitor.get_stats()
+        assert stats["fps"] == 0.0
+
 
 class TestCustomRegionMasker:
     """Test custom region masking."""
@@ -377,6 +384,14 @@ class TestCustomRegionMasker:
         # Verify result has same shape and is a numpy array
         assert result.shape == frame.shape
         assert isinstance(result, np.ndarray)
+
+    def test_apply_masks_pixelate_tiny_roi(self):
+        """Tiny ROIs should not crash in pixelate mode."""
+        frame = np.zeros((20, 20, 3), dtype=np.uint8)
+        masker = CustomRegionMasker()
+        masker.add_region("tiny", x1=0, y1=0, x2=10, y2=10, method="pixelate")
+        result = masker.apply_masks(frame)
+        assert result.shape == frame.shape
 
     def test_apply_masks_solid(self):
         """Test solid black masking."""

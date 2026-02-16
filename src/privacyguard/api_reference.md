@@ -36,7 +36,7 @@
 
 ### AuditLogger
 - Tracks anonymization operations for compliance
-- JSON/CSV export, compliance metrics
+- JSON audit logs and compliance metrics
 
 ### BatchProcessor
 - Processes directories of images/videos
@@ -50,7 +50,7 @@
 - Defines custom regions for persistent masking
 
 ### ComplianceWatermark
-- Adds visible/invisible compliance badges
+- Adds visible compliance badges with timestamps
 
 ## Example Usage
 

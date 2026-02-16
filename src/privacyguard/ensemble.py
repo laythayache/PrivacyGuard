@@ -9,6 +9,7 @@ Supports regional detectors for Arabic text and documents.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 
@@ -128,13 +129,83 @@ class EnsembleDetector:
                     )
                 )
 
+        # Run optional regional detectors and normalize their output
+        all_detections.extend(self._detect_regional(frame))
+
         # Merge using the selected strategy
         if self.config.ensemble_mode == "union":
             return self._merge_union(all_detections)
         elif self.config.ensemble_mode == "weighted_vote":
             return self._merge_weighted_vote(all_detections)
-        else:
-            return all_detections
+        elif self.config.ensemble_mode == "intersection":
+            return self._merge_intersection(all_detections)
+        raise ValueError(f"Unsupported ensemble_mode: {self.config.ensemble_mode}")
+
+    def _detect_regional(self, frame: np.ndarray) -> list[Detection]:
+        """Collect detections from regional detectors and normalize to Detection."""
+        detections: list[Detection] = []
+        for name, detector in self.regional_detectors.items():
+            if name == "arabic_plate" and isinstance(detector, ArabicPlateDetector):
+                for det in detector.detect(frame):
+                    detections.append(
+                        Detection(
+                            x1=det.x1,
+                            y1=det.y1,
+                            x2=det.x2,
+                            y2=det.y2,
+                            confidence=det.confidence,
+                            class_id=det.class_id,
+                            label=f"{det.label}_{name}" if det.label else name,
+                        )
+                    )
+            elif name == "text" and isinstance(detector, ArabicTextDetector):
+                for region in detector.detect_text_regions(frame):
+                    detection = self._region_to_detection(
+                        region=region,
+                        default_label="text",
+                        class_id=100,
+                        source=name,
+                    )
+                    if detection is not None:
+                        detections.append(detection)
+            elif name == "document" and isinstance(detector, DocumentDetector):
+                for region in detector.detect_document_regions(frame):
+                    detection = self._region_to_detection(
+                        region=region,
+                        default_label="document",
+                        class_id=200,
+                        source=name,
+                    )
+                    if detection is not None:
+                        detections.append(detection)
+        return detections
+
+    @staticmethod
+    def _region_to_detection(
+        region: dict[str, Any],
+        default_label: str,
+        class_id: int,
+        source: str,
+    ) -> Detection | None:
+        """Convert a regional detector dictionary payload to Detection."""
+        bbox = region.get("bbox")
+        if not isinstance(bbox, list) or len(bbox) != 4:
+            return None
+        x1, y1, x2, y2 = (int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))
+        if x2 <= x1 or y2 <= y1:
+            return None
+        confidence = float(region.get("confidence", 0.5))
+        raw_label = region.get("script", region.get("document_type", default_label))
+        label = raw_label.value if hasattr(raw_label, "value") else str(raw_label)
+        return Detection(
+            x1=x1,
+            y1=y1,
+            x2=x2,
+            y2=y2,
+            confidence=max(0.0, min(confidence, 1.0)),
+            class_id=class_id,
+            label=f"{label}_{source}",
+        )
 
     def _merge_union(self, dets: list[Detection]) -> list[Detection]:
         """Union: keep all detections, sort by confidence."""
@@ -183,6 +254,45 @@ class EnsembleDetector:
                 )
             used.add(i)
 
+        return merged
+
+    def _merge_intersection(self, dets: list[Detection]) -> list[Detection]:
+        """Intersection: keep detections supported by overlap with another detection."""
+        if not dets:
+            return []
+        if len(dets) == 1:
+            return dets
+
+        merged: list[Detection] = []
+        used: set[int] = set()
+        dets = sorted(dets, key=lambda d: d.confidence, reverse=True)
+
+        for i, det in enumerate(dets):
+            if i in used:
+                continue
+
+            group = [det]
+            for j, other in enumerate(dets[i + 1 :], start=i + 1):
+                if j in used:
+                    continue
+                if self._iou(det, other) >= 0.3:
+                    group.append(other)
+                    used.add(j)
+
+            if len(group) >= 2:
+                labels = sorted({d.label for d in group if d.label})
+                merged.append(
+                    Detection(
+                        x1=int(np.mean([d.x1 for d in group])),
+                        y1=int(np.mean([d.y1 for d in group])),
+                        x2=int(np.mean([d.x2 for d in group])),
+                        y2=int(np.mean([d.y2 for d in group])),
+                        confidence=float(np.mean([d.confidence for d in group])),
+                        class_id=group[0].class_id,
+                        label="+".join(labels) if labels else None,
+                    )
+                )
+                used.add(i)
         return merged
 
     @staticmethod

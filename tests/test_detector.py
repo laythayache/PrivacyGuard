@@ -139,6 +139,17 @@ class TestPostprocessLegacy:
         results = det._postprocess_legacy(out, (1.0, 1.0), (640, 640, 3))
         assert results == []
 
+    def test_per_class_nms_keeps_overlapping_different_classes(self):
+        det = self._make_detector_stub()
+        det.class_labels = {0: "face", 1: "plate"}
+        boxes = np.array([[0, 0, 100, 100], [0, 0, 100, 100]], dtype=np.int32)
+        confidences = np.array([0.9, 0.85], dtype=np.float32)
+        class_ids = np.array([0, 1], dtype=np.int32)
+        results = det._apply_nms(boxes, confidences, class_ids)
+
+        assert len(results) == 2
+        assert {r.class_id for r in results} == {0, 1}
+
 
 class TestPreprocess:
     def _make_detector_stub(self) -> ONNXDetector:

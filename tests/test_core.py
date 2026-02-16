@@ -63,6 +63,24 @@ class TestProcessFrame:
         roi_result = result2[100:200, 100:200]
         assert not np.array_equal(roi_orig, roi_result)
 
+    def test_records_nonzero_monitor_latency(self, guard: PrivacyGuard):
+        class DummyMonitor:
+            def __init__(self):
+                self.calls: list[tuple[float, int]] = []
+
+            def record_frame(self, processing_time_ms: float, detection_count: int) -> None:
+                self.calls.append((processing_time_ms, detection_count))
+
+        monitor = DummyMonitor()
+        guard.monitor = monitor
+        frame = np.zeros((240, 320, 3), dtype=np.uint8)
+        _ = guard.process_frame(frame)
+
+        assert len(monitor.calls) == 1
+        latency_ms, count = monitor.calls[0]
+        assert latency_ms > 0
+        assert count == 1
+
 
 class TestTargetClasses:
     def test_filters_by_target_class(self, guard: PrivacyGuard):
@@ -79,3 +97,67 @@ class TestTargetClasses:
         dets = guard.detect(frame)
         assert len(dets) == 1
         assert dets[0].class_id == 0
+
+
+class TestProcessVideo:
+    def test_audit_logger_uses_frame_metrics(self, guard: PrivacyGuard, monkeypatch):
+        frame = np.zeros((120, 160, 3), dtype=np.uint8)
+
+        class DummyCapture:
+            def __init__(self, *_):
+                self._read_count = 0
+
+            def isOpened(self):  # noqa: N802
+                return True
+
+            def get(self, prop):
+                import cv2
+
+                if prop == cv2.CAP_PROP_FPS:
+                    return 30.0
+                if prop == cv2.CAP_PROP_FRAME_WIDTH:
+                    return 160
+                if prop == cv2.CAP_PROP_FRAME_HEIGHT:
+                    return 120
+                return 0
+
+            def read(self):
+                if self._read_count == 0:
+                    self._read_count += 1
+                    return True, frame.copy()
+                return False, None
+
+            def release(self):
+                pass
+
+        class DummyWriter:
+            def __init__(self, *_):
+                self.frames = 0
+
+            def write(self, _):
+                self.frames += 1
+
+            def release(self):
+                pass
+
+        class DummyAudit:
+            def __init__(self):
+                self.calls = []
+
+            def log_anonymization(self, **kwargs):
+                self.calls.append(kwargs)
+
+        monkeypatch.setattr("privacyguard.core.cv2.VideoCapture", DummyCapture)
+        monkeypatch.setattr("privacyguard.core.cv2.VideoWriter", DummyWriter)
+        monkeypatch.setattr(
+            "privacyguard.core.cv2.VideoWriter_fourcc",
+            lambda *args, **kwargs: 0,
+        )
+
+        audit = DummyAudit()
+        guard.audit_logger = audit
+        guard.process_video("input.mp4", "output.mp4", show=False)
+
+        assert len(audit.calls) == 1
+        assert audit.calls[0]["detections_count"] == 1
+        assert audit.calls[0]["processing_time_ms"] > 0

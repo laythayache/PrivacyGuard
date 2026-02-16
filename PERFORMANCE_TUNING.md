@@ -130,12 +130,13 @@ guard = PrivacyGuard("model.onnx", method="pixelate")
 # ~3x faster than Gaussian, still good privacy
 ```
 
-### 5. In-Place Processing for Batch
+### 5. Reduce Extra Work in Batch Loops
 
 ```python
-# Batch mode: 20% faster with in-place processing
+# Reuse one guard instance and keep per-frame logic minimal
+guard = PrivacyGuard("model.onnx", method="pixelate")
 for frame in frames:
-    result = guard.process_frame(frame, in_place=True)  # Modifies input
+    result = guard.process_frame(frame)
 ```
 
 ### 6. Adjust Padding If Needed
@@ -158,8 +159,6 @@ from privacyguard.enterprise import BatchProcessor
 processor = BatchProcessor(
     "model.onnx",
     output_dir="anonymized/",
-    # Optional: higher res for better accuracy since not real-time
-    conf_threshold=0.5,
 )
 
 results = processor.process_directory("images/", pattern="*.jpg")
@@ -199,7 +198,6 @@ for frame in stream:
 - [ ] Use `target_classes` to skip unnecessary detections
 - [ ] Use `method="pixelate"` for real-time (faster than Gaussian)
 - [ ] Enable GPU with `onnxruntime-gpu` if available
-- [ ] Use in-place processing for batch: `guard.process_frame(frame, in_place=True)`
 - [ ] Monitor performance with `RealTimeMonitor`
 - [ ] Profile on target hardware (RPi, server, GPU, etc.)
 
