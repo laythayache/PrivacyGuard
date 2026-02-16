@@ -134,7 +134,7 @@ class MultiScriptProcessor:
         Returns:
             Anonymized frame
         """
-        result = frame.copy()
+        result: np.ndarray = np.array(frame, copy=True)
         analysis = self.analyze_document(frame)
 
         regions = analysis["script_regions"]
@@ -176,7 +176,7 @@ class MultiScriptProcessor:
         Returns:
             Processed frame
         """
-        result = frame.copy()
+        result: np.ndarray = np.array(frame, copy=True)
         regions = self.text_detector.detect_text_regions(frame)
 
         for region in regions:
@@ -209,7 +209,7 @@ class MultiScriptProcessor:
         Returns:
             Frame with blurred region
         """
-        result = frame.copy()
+        result: np.ndarray = np.array(frame, copy=True)
         x1, y1, x2, y2 = region["bbox"]
 
         # Add padding

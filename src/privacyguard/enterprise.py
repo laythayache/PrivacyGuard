@@ -362,7 +362,7 @@ class CustomRegionMasker:
         Returns:
             Frame with custom regions masked
         """
-        result = frame.copy()
+        result: np.ndarray = np.array(frame, copy=True)
 
         for region in self.regions:
             x1, y1, x2, y2 = region["bbox"]
@@ -428,7 +428,7 @@ class ComplianceWatermark:
         Returns:
             Frame with badge
         """
-        result = frame.copy()
+        result: np.ndarray = np.array(frame, copy=True)
         h, w = frame.shape[:2]
 
         # Add semi-transparent overlay

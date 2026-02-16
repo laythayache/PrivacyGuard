@@ -52,7 +52,8 @@ class MetadataStripper:
     @staticmethod
     def strip_frame(frame: np.ndarray) -> np.ndarray:
         """In-memory metadata stripping (returns a fresh copy)."""
-        return frame.copy()
+        result: np.ndarray = np.array(frame, copy=True)
+        return result
 
     @staticmethod
     def get_safe_filename(original_path: str | Path) -> str:

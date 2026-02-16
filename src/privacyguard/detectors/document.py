@@ -101,7 +101,7 @@ class DocumentDetector:
         Returns:
             Frame with document anonymized
         """
-        result = frame.copy()
+        result: np.ndarray = np.array(frame, copy=True)
         x1, y1, x2, y2 = region["bbox"]
 
         if self.config.blur_strategy == "full":
@@ -147,7 +147,7 @@ class DocumentDetector:
         Returns:
             Frame with documents anonymized
         """
-        result = frame.copy()
+        result: np.ndarray = np.array(frame, copy=True)
         regions = self.detect_document_regions(frame)
 
         for region in regions:

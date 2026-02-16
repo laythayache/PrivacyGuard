@@ -120,7 +120,7 @@ class ArabicTextDetector:
         Returns:
             Frame with text regions blurred
         """
-        result = frame.copy()
+        result: np.ndarray = np.array(frame, copy=True)
         regions = self.detect_text_regions(frame)
 
         for region in regions:
