@@ -35,8 +35,9 @@
 - Union, weighted vote, intersection modes
 
 ### AuditLogger
-- Tracks anonymization operations for compliance
-- JSON audit logs and compliance metrics
+- Records masking operations in a local JSON file
+- Provides operational counts and timing summaries
+- Does not create a tamper-evident record or establish legal compliance
 
 ### BatchProcessor
 - Processes directories of images/videos
@@ -49,8 +50,10 @@
 ### CustomRegionMasker
 - Defines custom regions for persistent masking
 
-### ComplianceWatermark
-- Adds visible compliance badges with timestamps
+### ProcessingStatusWatermark
+- Adds an informational status label and timestamp
+- Does not prove masking success, consent, or legal compliance
+- `ComplianceWatermark` and `add_compliance_badge` remain compatibility aliases
 
 ## Example Usage
 
@@ -88,7 +91,7 @@ guard.run(source=0)
 ## Advanced Features
 - Use `postprocess_hook` to add custom overlays or watermark after anonymization.
 - Use `CustomRegionMasker` for persistent region masking.
-- Use `ComplianceWatermark.add_compliance_badge(frame, text)` for legal proof.
+- Use `ProcessingStatusWatermark.add_status_label(frame, text)` for an informational overlay.
 
 ---
 

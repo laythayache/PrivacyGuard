@@ -1,11 +1,4 @@
-"""Enterprise features: Batch processing, audit logging, monitoring.
-
-These features are free and open-source, but can be monetized through:
-- Consulting services
-- Custom training
-- Hosted dashboards
-- Priority support
-"""
+"""Operational helpers for logging, batch processing, monitoring, and overlays."""
 
 from __future__ import annotations
 
@@ -38,14 +31,12 @@ class AuditLog:
 
 
 class AuditLogger:
-    """Track all anonymization operations for compliance audits.
+    """Record masking operations in a local JSON log.
 
-    Features:
-    - JSON audit trail (queryable)
-    - Compliance metrics
-    - Anomaly detection
-
-    Use case: Pass compliance audits, prove data handling.
+    The log is an operational record, not a tamper-evident audit system or
+    evidence of legal compliance. Callers are responsible for access control,
+    retention, redaction, integrity protection, and secure storage. File paths
+    and user values may themselves contain sensitive information.
     """
 
     def __init__(self, log_path: str | Path) -> None:
@@ -96,11 +87,12 @@ class AuditLogger:
         self.logs.append(log)
         self._save_logs()
 
-    def get_compliance_report(self) -> dict[str, Any]:
-        """Generate compliance report.
+    def get_operation_summary(self) -> dict[str, Any]:
+        """Summarize the operations currently loaded by this logger.
 
         Returns:
-            Dict with statistics for audit
+            Operational counts and timing statistics. These values do not
+            establish that processing was complete, correct, or compliant.
         """
         if not self.logs:
             return {}
@@ -118,6 +110,14 @@ class AuditLogger:
             "models_used": list(set(log.model_name for log in self.logs)),
             "failed_operations": sum(1 for log in self.logs if log.status != "success"),
         }
+
+    def get_compliance_report(self) -> dict[str, Any]:
+        """Return :meth:`get_operation_summary` for backward compatibility.
+
+        The historical method name does not imply certification or a legal
+        compliance determination. New code should use ``get_operation_summary``.
+        """
+        return self.get_operation_summary()
 
     def _save_logs(self) -> None:
         """Save logs to file."""
@@ -164,15 +164,10 @@ class AuditLogger:
 
 
 class BatchProcessor:
-    """Process entire directories of images/videos with progress tracking.
+    """Process matching files in a directory with progress tracking.
 
-    Features:
-    - Parallel processing (optional GPU)
-    - Progress bars
-    - Error handling & recovery
-    - Output organization
-
-    Use case: Process thousands of files efficiently.
+    Processing is sequential. Errors are counted in the returned summary and
+    printed so callers can decide how to retry or escalate them.
     """
 
     def __init__(
@@ -254,16 +249,7 @@ class BatchProcessor:
 
 
 class RealTimeMonitor:
-    """Monitor real-time performance metrics for production systems.
-
-    Features:
-    - FPS tracking
-    - Memory usage
-    - Detection rates
-    - Anomaly alerts
-
-    Use case: Monitor security cameras, alert on suspicious activity.
-    """
+    """Track recent latency and detection-count metrics in memory."""
 
     def __init__(self, name: str = "monitor") -> None:
         """Initialize real-time monitor.
@@ -286,7 +272,7 @@ class RealTimeMonitor:
         self.frame_times.append(processing_time_ms)
         self.detection_counts.append(detection_count)
 
-        # Keep only last 300 frames (~10 seconds at 30 FPS)
+        # Keep a bounded rolling window of recent frames.
         if len(self.frame_times) > 300:
             self.frame_times.pop(0)
             self.detection_counts.pop(0)
@@ -325,7 +311,7 @@ class RealTimeMonitor:
 
 
 class CustomRegionMasker:
-    """Define custom regions that should always be anonymized.
+    """Define rectangular regions that should always be masked.
 
     Features:
     - Define rectangular zones
@@ -414,30 +400,34 @@ class CustomRegionMasker:
             self.regions = json.load(f)
 
 
-class ComplianceWatermark:
-    """Add watermarks to prove compliance.
+class ProcessingStatusWatermark:
+    """Add a visible status label and timestamp to a frame.
 
-    Features:
-    - Visible compliance badge
-    - Timestamp proof
-
-    Use case: Legally prove video was processed with consent.
+    The overlay is informational only. It does not prove that masking was
+    successful, that consent existed, or that processing complied with law.
+    It is not cryptographically signed or tamper-evident.
     """
 
     @staticmethod
-    def add_compliance_badge(
-        frame: np.ndarray, text: str = "ANONYMIZED", opacity: float = 0.3
+    def add_status_label(
+        frame: np.ndarray, text: str = "MASKING APPLIED", opacity: float = 0.3
     ) -> np.ndarray:
-        """Add visible compliance badge to frame.
+        """Add a visible processing-status label to a copy of ``frame``.
 
         Args:
             frame: Input frame
-            text: Badge text
+            text: Informational label text
             opacity: Badge opacity (0-1)
 
         Returns:
-            Frame with badge
+            Frame with the status overlay
+
+        Raises:
+            ValueError: If opacity is outside the inclusive range 0 to 1
         """
+        if not 0.0 <= opacity <= 1.0:
+            raise ValueError("opacity must be between 0 and 1")
+
         result: np.ndarray = np.array(frame, copy=True)
         h, w = frame.shape[:2]
 
@@ -469,3 +459,21 @@ class ComplianceWatermark:
         )
 
         return result
+
+    @staticmethod
+    def add_compliance_badge(
+        frame: np.ndarray, text: str = "MASKING APPLIED", opacity: float = 0.3
+    ) -> np.ndarray:
+        """Call :meth:`add_status_label` for backward compatibility.
+
+        The historical method name has no legal or evidentiary meaning. New
+        code should use ``add_status_label``.
+        """
+        return ProcessingStatusWatermark.add_status_label(frame, text, opacity)
+
+
+class ComplianceWatermark(ProcessingStatusWatermark):
+    """Backward-compatible name for :class:`ProcessingStatusWatermark`.
+
+    This class does not assert, prove, or certify legal compliance.
+    """

@@ -260,7 +260,7 @@ logger.log_anonymization(
 )
 
 # Generate an operation summary
-report = logger.get_compliance_report()
+report = logger.get_operation_summary()
 # → {"total_operations": 1000, "total_detections": 42000, ...}
 ```
 
@@ -316,9 +316,9 @@ masker.save_config("regions.json")  # Reuse later
 Add a visible processing-status label. A watermark is not legal proof or certification:
 
 ```python
-from privacyguard.enterprise import ComplianceWatermark
+from privacyguard.enterprise import ProcessingStatusWatermark
 
-result = ComplianceWatermark.add_compliance_badge(frame, text="MASKING APPLIED")
+result = ProcessingStatusWatermark.add_status_label(frame, text="MASKING APPLIED")
 # → Frame with status label + timestamp
 ```
 

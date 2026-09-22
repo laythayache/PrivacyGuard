@@ -5,12 +5,14 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+import pytest
 
 from privacyguard.enterprise import (
     AuditLogger,
     BatchProcessor,
     ComplianceWatermark,
     CustomRegionMasker,
+    ProcessingStatusWatermark,
     RealTimeMonitor,
 )
 
@@ -92,16 +94,16 @@ class TestAuditLogger:
         logger = AuditLogger(log_file)
         assert len(logger.logs) == 0
 
-    def test_get_compliance_report_empty(self, tmp_path):
-        """Test compliance report with no logs."""
+    def test_get_operation_summary_empty(self, tmp_path):
+        """Test operation summary with no logs."""
         log_file = tmp_path / "audit.json"
         logger = AuditLogger(log_file)
 
-        report = logger.get_compliance_report()
+        report = logger.get_operation_summary()
         assert report == {}
 
-    def test_get_compliance_report_with_data(self, tmp_path):
-        """Test compliance report generation."""
+    def test_get_operation_summary_with_data(self, tmp_path):
+        """Test operation summary generation."""
         log_file = tmp_path / "audit.json"
         logger = AuditLogger(log_file)
 
@@ -116,13 +118,16 @@ class TestAuditLogger:
                 model_name="model.onnx",
             )
 
-        report = logger.get_compliance_report()
+        report = logger.get_operation_summary()
         assert report["total_operations"] == 3
         assert report["total_detections"] == 5 + 10 + 15
         assert "period_start" in report
         assert "period_end" in report
         assert len(report["methods_used"]) == 2  # gaussian and pixelate
         assert report["failed_operations"] == 0
+
+        # The historical API remains functional without implying certification.
+        assert logger.get_compliance_report() == report
 
 
 class TestBatchProcessor:
@@ -421,14 +426,14 @@ class TestCustomRegionMasker:
         assert masker2.regions[1]["name"] == "sign"
 
 
-class TestComplianceWatermark:
-    """Test compliance watermarking."""
+class TestProcessingStatusWatermark:
+    """Test informational processing-status overlays."""
 
-    def test_add_compliance_badge_default(self):
-        """Test adding default compliance badge."""
+    def test_add_status_label_default(self):
+        """Test adding the default status label."""
         frame = np.ones((480, 640, 3), dtype=np.uint8) * 100
 
-        result = ComplianceWatermark.add_compliance_badge(frame)
+        result = ProcessingStatusWatermark.add_status_label(frame)
 
         # Verify output is a frame with same shape
         assert result.shape == frame.shape
@@ -436,23 +441,25 @@ class TestComplianceWatermark:
         # Verify the badge area was modified (top-left corner should be greener)
         assert not np.array_equal(result[:80, :], frame[:80, :])
 
-    def test_add_compliance_badge_custom_text(self):
+    def test_add_status_label_custom_text(self):
         """Test custom badge text."""
         frame = np.ones((480, 640, 3), dtype=np.uint8) * 100
 
-        result = ComplianceWatermark.add_compliance_badge(frame, text="GDPR COMPLIANT")
+        result = ProcessingStatusWatermark.add_status_label(frame, text="REVIEWED")
 
         # Should have same shape
         assert result.shape == frame.shape
         # Should be different from original
         assert not np.array_equal(result, frame)
 
-    def test_add_compliance_badge_custom_opacity(self):
+    def test_add_status_label_custom_opacity(self):
         """Test custom opacity."""
         frame = np.ones((480, 640, 3), dtype=np.uint8) * 100
 
-        result_opaque = ComplianceWatermark.add_compliance_badge(frame, opacity=0.9)
-        result_transparent = ComplianceWatermark.add_compliance_badge(frame, opacity=0.1)
+        result_opaque = ProcessingStatusWatermark.add_status_label(frame, opacity=0.9)
+        result_transparent = ProcessingStatusWatermark.add_status_label(
+            frame, opacity=0.1
+        )
 
         # Both should be different from original
         assert not np.array_equal(result_opaque, frame)
@@ -465,8 +472,23 @@ class TestComplianceWatermark:
     def test_badge_includes_timestamp(self):
         """Test that timestamp is included in badge."""
         frame = np.ones((480, 640, 3), dtype=np.uint8) * 100
-        result = ComplianceWatermark.add_compliance_badge(frame)
+        result = ProcessingStatusWatermark.add_status_label(frame)
 
         # Verify that the badge area (especially lower part with timestamp) was modified
         # The timestamp is written in the lower part of the badge area
         assert not np.array_equal(result[50:80, :], frame[50:80, :])
+
+    def test_legacy_compliance_watermark_alias(self):
+        """Keep the historical API available for existing integrations."""
+        frame = np.ones((480, 640, 3), dtype=np.uint8) * 100
+
+        result = ComplianceWatermark.add_compliance_badge(frame)
+
+        assert result.shape == frame.shape
+
+    def test_opacity_validation(self):
+        """Reject opacity values outside the documented range."""
+        frame = np.ones((480, 640, 3), dtype=np.uint8) * 100
+
+        with pytest.raises(ValueError, match="opacity must be between 0 and 1"):
+            ProcessingStatusWatermark.add_status_label(frame, opacity=1.1)
