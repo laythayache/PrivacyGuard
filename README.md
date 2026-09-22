@@ -1,15 +1,14 @@
 <p align="center">
   <h1 align="center">PrivacyGuard</h1>
   <p align="center">
-    <strong>Production-grade privacy de-identification pipeline for edge AI</strong><br>
-    <em>Zero-cloud, GDPR-compliant, real-time on Raspberry Pi</em>
+    <strong>Privacy-oriented detection and masking pipeline for edge AI</strong><br>
+    <em>Local processing with configurable detection and masking</em>
   </p>
   <p align="center">
     <a href="QUICKSTART.md">Quick Start</a> &nbsp;&bull;&nbsp;
     <a href="ARCHITECTURE.md">Architecture</a> &nbsp;&bull;&nbsp;
     <a href="BENCHMARKS.md">Benchmarks</a> &nbsp;&bull;&nbsp;
     <a href="src/privacyguard/api_reference.md">API Reference</a> &nbsp;&bull;&nbsp;
-    <a href="compliance/">Compliance</a> &nbsp;&bull;&nbsp;
     <a href="COMMUNITY_FIRST.md">Community</a> &nbsp;&bull;&nbsp;
     <a href="CONTRIBUTING.md">Contributing</a>
   </p>
@@ -18,23 +17,23 @@
     <img alt="Python" src="https://img.shields.io/badge/python-3.9%2B-blue">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
     <img alt="Code style" src="https://img.shields.io/badge/code%20style-ruff-purple">
-    <img alt="Tests" src="https://img.shields.io/badge/tests-87%2F87-brightgreen">
-    <img alt="Coverage" src="https://img.shields.io/badge/coverage-67%25-yellow">
   </p>
 </p>
 
 ---
 
-**PrivacyGuard** is a **production-ready privacy pipeline** that detects and anonymizes sensitive regions (faces, license plates, persons) in real-time video — *before* any data leaves the device.
+**PrivacyGuard** is a computer-vision pipeline that detects selected regions and applies configurable masking to images, recorded video, and live streams. It can run locally without sending frames to a cloud inference API.
+
+Masking quality depends on detection quality. Missed or heavily occluded regions cannot be masked, blur is not encryption, and this software does not by itself establish legal compliance. Validate the selected model, labels, thresholds, input conditions, and deployment controls for your own use case.
 
 ### Why PrivacyGuard?
 
 | Challenge | Solution |
 |-----------|----------|
-| **Compliance** (GDPR/CCPA) | Encrypt data at the source (on-device blur) before transmission |
-| **Speed** | 25-30 FPS on Raspberry Pi 4 using YOLOv8-nano + ONNX Runtime |
-| **Privacy** | Zero cloud calls, zero telemetry, 100% local processing |
-| **Robustness** | Multi-model ensemble, adaptive blurring, production-tested |
+| **Deployment control** | Process frames locally and choose what leaves the device |
+| **Performance** | Benchmark your exact model, input, hardware, runtime, and masking settings; see [Benchmarks](BENCHMARKS.md) |
+| **Privacy-oriented processing** | Avoid a cloud inference dependency when the pipeline is configured to run locally |
+| **Robustness** | Multi-model ensemble, adaptive blurring, regression-tested |
 | **Integration** | 3-line API, CLI tool, easy to embed in existing pipelines |
 
 ## Architecture
@@ -239,13 +238,13 @@ See [API Reference](src/privacyguard/api_reference.md) for full class/method doc
 - Per-class anonymization
 - Custom post-processing hooks
 - Batch processing, audit logging, real-time monitoring
-- Compliance watermarking and persistent region masking
+- Status watermarking and persistent region masking
 
 
-PrivacyGuard includes **production-ready enterprise capabilities**—all free and open-source:
+PrivacyGuard includes **enterprise-oriented capabilities** that are free and open-source:
 
-### Audit Logging (Compliance)
-Track all anonymization operations for audits:
+### Audit Logging
+Record masking operations for operational review:
 
 ```python
 from privacyguard.enterprise import AuditLogger
@@ -260,13 +259,13 @@ logger.log_anonymization(
     model_name="yolov8-face"
 )
 
-# Generate compliance report
+# Generate an operation summary
 report = logger.get_compliance_report()
 # → {"total_operations": 1000, "total_detections": 42000, ...}
 ```
 
-### Batch Processing (Scale)
-Process thousands of files with progress tracking:
+### Batch Processing
+Process directories of files with progress tracking:
 
 ```python
 from privacyguard.enterprise import BatchProcessor
@@ -276,7 +275,7 @@ results = processor.process_directory("images/", pattern="*.jpg")
 # → {"total_files": 500, "successful": 495, "failed": 5, "total_time_sec": 120}
 ```
 
-### Real-Time Monitoring (Production)
+### Runtime Monitoring
 Monitor FPS, latency, and performance anomalies:
 
 ```python
@@ -313,27 +312,28 @@ result = masker.apply_masks(frame)
 masker.save_config("regions.json")  # Reuse later
 ```
 
-### Compliance Watermark (Legal proof)
-Add badges proving compliance:
+### Status Watermark
+Add a visible processing-status label. A watermark is not legal proof or certification:
 
 ```python
 from privacyguard.enterprise import ComplianceWatermark
 
-result = ComplianceWatermark.add_compliance_badge(frame, text="GDPR COMPLIANT")
-# → Frame with green badge + timestamp
+result = ComplianceWatermark.add_compliance_badge(frame, text="MASKING APPLIED")
+# → Frame with status label + timestamp
 ```
 
 ---
 
-## 📋 Compliance Ready
+## 📋 Deployment and Governance
 
-PrivacyGuard includes comprehensive compliance documentation:
+PrivacyGuard is one component in a larger data-processing system. Before deployment, document and review:
 
-- **[GDPR Compliance](compliance/GDPR_COMPLIANCE.md)** — Article-by-article checklist
-- **[CCPA Compliance](compliance/CCPA_COMPLIANCE.md)** — California/CPRA guidance
-- **Audit templates** — Ready-to-use documentation for regulators
+- the lawful basis and purpose for processing;
+- detection limits, representative evaluation footage, and acceptable failure modes;
+- data flows, storage, retention, access controls, and incident handling;
+- human review, notices, consent, contracts, and jurisdiction-specific requirements.
 
-**Zero personal data transmission = automatic compliance.**
+Files in the `compliance/` directory are preliminary engineering checklists. They are not legal advice, certification, or evidence that a deployment complies with any law. Compliance depends on the complete system and the organization operating it.
 
 ---
 
@@ -350,7 +350,7 @@ Privacy is a human right, not a luxury good. We're building a movement to make p
 - **Community-driven:** Everyone contributes improvements
 
 ### How You Can Help
-- **Use it:** Deploy in production at scale (no restrictions)
+- **Use it:** Evaluate it against your own footage, threat model, and deployment requirements
 - **Contribute:** Code, documentation, examples, translations
 - **Share:** Tell others about privacy-first design
 - **Advocate:** Help shift global privacy culture
@@ -361,13 +361,15 @@ Privacy is a human right, not a luxury good. We're building a movement to make p
 
 ## Model Setup
 
-PrivacyGuard works with any ONNX object detection model that follows standard YOLOv8 or SSD output conventions. Recommended models:
+PrivacyGuard works with compatible ONNX object detection models that follow its supported YOLOv8 or SSD output conventions. Example model profiles:
 
-| Model | Size | FPS (RPi 4) | FPS (x86 CPU) | Use Case |
-|---|---|---|---|---|
-| YOLOv8n-face | 6 MB | ~25 | ~90 | Faces only |
-| YOLOv8n-custom | 6 MB | ~25 | ~90 | Faces + plates |
-| YOLOv8s-custom | 22 MB | ~10 | ~50 | Higher accuracy |
+| Model profile | Typical use case | Tradeoff to validate |
+|---|---|---|
+| YOLOv8n face model | Faces only | Smaller model; verify recall on your footage |
+| YOLOv8n custom model | Faces and plates | Requires a compatible label mapping and representative evaluation data |
+| YOLOv8s custom model | Higher-capacity detection | Higher compute and memory requirements |
+
+The repository does not publish one universal FPS result. Use [BENCHMARKS.md](BENCHMARKS.md) to record a reproducible measurement for your configuration.
 
 **Export a YOLOv8 model to ONNX:**
 
@@ -429,8 +431,8 @@ See the [`examples/`](examples/) directory:
 
 ## Performance Tips
 
-1. **Use YOLOv8-nano** — best accuracy/speed tradeoff for edge
-2. **Reduce `input_size`** to `(320, 320)` for 2-3x speedup at lower accuracy
+1. **Start with a small model** when latency and device resources are constrained, then validate detection quality
+2. **Reduce `input_size`** to `(320, 320)` to improve throughput at the cost of detection detail
 3. **Install `onnxruntime-gpu`** for NVIDIA GPUs (automatic provider selection)
 4. **Target specific classes** to skip unnecessary post-processing
 
