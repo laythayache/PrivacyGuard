@@ -1,171 +1,107 @@
-# CCPA/CPRA Compliance Checklist for PrivacyGuard
+# CCPA Deployment Considerations for PrivacyGuard
 
-Use this for California/US privacy compliance.
+> **Engineering guidance, not legal advice or certification.** This checklist does not determine whether the California Consumer Privacy Act, as amended by the CPRA, applies to an organization or whether a deployment complies with it. Obtain qualified advice for the actual business, data flows, consumers, and uses.
 
-## ✅ CCPA Obligations Covered
+Last reviewed: 22 September 2026.
 
-| Obligation | Requirement | PrivacyGuard Solution |
-|-----------|------------|----------------------|
-| **Data Collection** | Disclose what you collect | Anonymize before collecting |
-| **Sale of Data** | Opt-out for sale | No cloud transmission = no sale risk |
-| **Deletion Rights** | Delete on request | Only store anonymized frames |
-| **Access Rights** | Let users see their data | Can't identify → no access request |
-| **Non-discrimination** | Don't charge for privacy | Free for all customers |
+## What PrivacyGuard can contribute
 
-## 🔒 Data Protection Strategies
+PrivacyGuard can be configured to detect selected regions and apply blur, pixelation, or solid masking locally before processed media is sent to another system. Reducing visible identifiers before downstream use may reduce exposure, but it does not decide whether the input or output is personal information, sensitive personal information, biometric information, aggregate consumer information, or deidentified information under California law.
 
-### Strategy 1: Anonymize Before Collection
-```python
-from privacyguard import PrivacyGuard
+Important limitations include:
 
-# Capture → Blur → Store (never store raw frames)
-guard = PrivacyGuard("model.onnx")
-frame = capture_from_camera()
-anonymized = guard.process_frame(frame)
-storage.save(anonymized)  # Only this is stored
-```
+- raw frames are still collected and processed by the device;
+- missed or incorrect detections leave information unmasked;
+- context, audio, timestamps, geolocation, metadata, clothing, gait, household information, or other signals may remain linkable;
+- blur and pixelation do not prevent every form of re-identification;
+- configuration, model quality, input conditions, storage, sharing, and organizational practices determine the actual risk;
+- a local component does not prove that the complete system avoids sale, sharing, disclosure, or external transmission.
 
-**CCPA Impact:**
-- Raw biometric data (faces) never collected ✅
-- No "sale of personal information" ✅
-- No deletion requests needed ✅
+Do not assume processed video is legally deidentified. Evaluate the current statutory definition, the technical safeguards, organizational processes, re-identification restrictions, public commitments, and the information reasonably available to the business.
 
-### Strategy 2: Metadata Stripping
-```python
-from privacyguard.metadata import MetadataStripper
+## What the library does not provide
 
-stripper = MetadataStripper()
-stripper.strip_image("photo.jpg", "clean.jpg")
-# Removes: EXIF, GPS, camera model, device ID, timestamp
-```
+PrivacyGuard does not determine CCPA applicability, create notices at collection or privacy policies, process consumer requests, verify requesters, honor opt-out preference signals, manage sale or sharing choices, limit sensitive-information use, set retention periods, delete backups, manage contracts, or prevent discrimination.
 
-**Removed Data:**
-- Precise geolocation
-- Device identifiers
-- Timestamps (for identification)
+The package also does not supply encryption, identity and access management, network controls, storage governance, or a complete cybersecurity program. Those controls belong to the surrounding deployment.
 
-## 📋 Compliance Implementation
+## Deployment checklist
 
-- [ ] **Privacy Policy Updated**: Disclose local video anonymization
-- [ ] **Opt-Out Available**: Users can request no recording
-- [ ] **No Data Sale**: Contractually prohibit selling anonymized data
-- [ ] **Deletion Process**: Document how to delete stored videos
-- [ ] **Access Controls**: Limit employee access to processed videos
-- [ ] **Vendor Contracts**: Require vendors to follow CCPA
+### 1. Applicability and data inventory
 
-## 🏷️ Consumer Rights Response
+- [ ] Determine whether the organization and processing are subject to the current CCPA and regulations.
+- [ ] Identify the business, service providers, contractors, third parties, system owner, and privacy contact.
+- [ ] Inventory raw frames, processed media, audio, metadata, logs, identifiers, inferences, and linked records.
+- [ ] Document purposes, sources, retention, recipients, sale, sharing, disclosure, and cross-context behavioral advertising uses.
+- [ ] Classify each data element under the current legal definitions with qualified advice.
 
-### Right to Know: "What data do you have about me?"
-```
-Response: "We don't collect faces/license plates - they're blurred
-immediately using PrivacyGuard. Only anonymized frames are stored."
+### 2. Notice and purpose controls
 
-Data provided: Anonymized video only
-```
+- [ ] Provide required notice at or before collection using descriptions that match the actual system.
+- [ ] State that raw media is processed and that automated masking can miss regions.
+- [ ] Limit collection, use, retention, and sharing to disclosed, compatible, and reasonably necessary purposes.
+- [ ] Establish change-control review before introducing new models, classes, cameras, recipients, or purposes.
+- [ ] Do not claim that local processing or masking automatically removes CCPA obligations.
 
-### Right to Delete: "Delete my data"
-```
-Process:
-1. Identify video timestamp (e.g., 2024-01-15 14:30:00)
-2. Locate stored files from that time
-3. Delete from storage and backups
-4. Confirm deletion within 30 days
-```
+### 3. Consumer-rights operations
 
-### Right to Opt-Out: "Don't collect my data"
-```
-Options:
-- Turn off recording in settings
-- Exclude certain cameras
-- Request deletion of historical data
-```
+- [ ] Implement applicable methods for requests to know, access, delete, correct, opt out of sale or sharing, and limit the use or disclosure of sensitive personal information.
+- [ ] Verify requesters using a documented process without collecting disproportionate new information.
+- [ ] Locate responsive media, metadata, logs, derived data, service-provider copies, archives, and backups.
+- [ ] Document exceptions, responses, timing, and downstream instructions.
+- [ ] Ensure the organization does not discriminate against consumers for exercising applicable rights.
+- [ ] Evaluate and honor applicable opt-out preference signals in the surrounding application; PrivacyGuard does not process them.
 
-## 💰 Opt-Out Mechanism
+### 4. Detection and masking validation
 
-Implement in your application:
+- [ ] Freeze the model file and hash, label mapping, thresholds, input size, masking method, padding, and software version.
+- [ ] Test representative footage across expected lighting, angle, distance, motion, occlusion, environments, demographics, and camera types.
+- [ ] Record false negatives for every protected class and inspect output for contextual or indirect identifiers.
+- [ ] Define acceptable failure rates and the operational response when the system falls outside them.
+- [ ] Preserve the evaluation data, method, results, reviewer, approval decision, and review date.
+- [ ] Repeat validation after material model, configuration, camera, or environment changes.
 
-```python
-class PrivacySettings:
-    def __init__(self):
-        self.recording_enabled = True
-        self.anonymize_faces = True
-        self.anonymize_plates = True
-        self.data_retention_days = 30
+### 5. Security, retention, and contracts
 
-    def disable_collection(self):
-        """User clicks 'Opt-Out' button"""
-        self.recording_enabled = False
+- [ ] Apply reasonable security appropriate to the complete processing operation, including access controls, encryption, monitoring, patching, backup protection, and incident response.
+- [ ] Keep raw and processed media only for documented periods and implement deletion across primary storage, caches, exports, and backups.
+- [ ] Verify network behavior and third-party dependencies at the deployment boundary.
+- [ ] Avoid unnecessary personal information in filenames, operation logs, alerts, and analytics.
+- [ ] Put required terms and use restrictions into service-provider, contractor, and third-party agreements.
+- [ ] Review whether current risk-assessment, cybersecurity-audit, or automated-decisionmaking requirements apply to the business and processing.
 
-    def request_deletion(self, date_range):
-        """User requests historical data deletion"""
-        delete_files_in_range(date_range)
-```
+### 6. Deidentification assessment
 
-## 🛡️ Data Minimization
+- [ ] Identify all information and reasonably available means that could link processed output to a consumer or household.
+- [ ] Evaluate masking strength and remaining identifiers using representative adversarial review.
+- [ ] Document technical safeguards, business processes, re-identification prohibitions, contractual controls, and public commitments required by the current legal definition.
+- [ ] Continue treating output as personal information unless the organization can substantiate a different classification.
+- [ ] Reassess when the data is combined with new datasets or disclosed to new recipients.
 
-PrivacyGuard achieves CCPA Article 1798.100 compliance:
+## Suggested technical assessment record
 
-```
-BEFORE PrivacyGuard:
-Raw video → Cloud → Storage → Sold to advertisers ❌
+Record at least:
 
-AFTER PrivacyGuard:
-Raw video → Local blur → Anonymized storage → No sale possible ✅
-```
+- business and system owner, processing purpose, applicable locations, and consumer groups;
+- camera and input specifications, model source and hash, class mapping, software version, and configuration;
+- evaluation conditions, false negatives, false positives, remaining identifiers, reviewer, and acceptance decision;
+- raw and processed data flows, storage, logs, analytics, recipients, sale or sharing analysis, and external dependencies;
+- notices, request channels, opt-out mechanisms, contracts, retention, deletion, access controls, and incident procedures;
+- unresolved risks, legal-review reference, approver, and next review date.
 
-## 📊 CCPA vs PrivacyGuard
+## Safe public wording
 
-| CCPA Right | Traditional Approach | PrivacyGuard Approach |
-|-----------|--------------------|--------------------|
-| **Right to Know** | Hard (extract from database) | Easy (no personal data) |
-| **Right to Delete** | Complex (PII in storage) | Simple (only delete video) |
-| **Right to Opt-Out** | Hard (data already sold) | Easy (prevent collection) |
-| **Non-Discrimination** | Hard (track consent) | Automatic (no data) |
-| **Cost** | $50k-100k compliance | Minimal overhead |
+Accurate wording describes the technical behavior without reaching a legal conclusion, for example:
 
-## 🚀 Sample Implementation
+> PrivacyGuard can apply configurable masking to detected regions before downstream use. Detection failures and contextual identifiers may remain. Whether the resulting data is deidentified and whether a deployment complies with the CCPA require a system-specific assessment.
 
-```python
-from privacyguard import PrivacyGuard
-from privacyguard.enterprise import AuditLogger
+Avoid claims such as “CCPA compliant,” “no personal information,” “no deletion requests required,” “no sale possible,” or “automatic opt-out” unless qualified, current, deployment-specific analysis supports the exact statement.
 
-class CCPACompliantCamera:
-    def __init__(self):
-        self.guard = PrivacyGuard("model.onnx")
-        self.audit = AuditLogger("/logs/privacy_audit.json")
-        self.recording_enabled = True
+## Official references
 
-    def capture_and_store(self, frame):
-        """CCPA-compliant video processing"""
-        if not self.recording_enabled:
-            return
+- [California Attorney General: California Consumer Privacy Act](https://oag.ca.gov/privacy/ccpa)
+- [California Privacy Protection Agency: Laws and regulations](https://cppa.ca.gov/regulations/)
+- [CCPA regulations effective 1 January 2026](https://cppa.ca.gov/regulations/pdf/ccpa_statute_eff_20260101.pdf)
+- [California Privacy Protection Agency FAQs](https://cppa.ca.gov/faq)
 
-        # Anonymize immediately
-        anon_frame = self.guard.process_frame(frame)
-
-        # Log for audit trail
-        self.audit.log_anonymization(
-            source_file="camera_1",
-            output_file=f"storage/{datetime.now()}.jpg",
-            detections_count=0,  # Don't track # of faces
-            processing_time_ms=33,
-            anonymization_method="gaussian",
-            model_name="face_detector"
-        )
-
-        # Store anonymized only
-        self.storage.save(anon_frame)
-
-    def handle_deletion_request(self, date_range):
-        """CCPA Right to Delete"""
-        files = self.storage.list_files(date_range)
-        for file in files:
-            self.storage.delete(file)
-            self.audit.log_deletion(file)
-```
-
-## 📖 References
-
-- [CCPA Official Text](https://oag.ca.gov/privacy/ccpa)
-- [CPRA (California Privacy Rights Act)](https://oag.ca.gov/cpra)
-- [FTC Guidance on Biometrics](https://www.ftc.gov/news-events/blogs/techftc/2020/08/are-you-ready-biometric-regulations)
+Recheck the current statute, regulations, thresholds, exemptions, and regulator guidance before relying on this checklist.

@@ -1,154 +1,106 @@
-# GDPR Compliance Checklist for PrivacyGuard
+# GDPR Deployment Considerations for PrivacyGuard
 
-Use this document to demonstrate GDPR compliance when deploying PrivacyGuard.
+> **Engineering guidance, not legal advice or certification.** This checklist does not determine whether the GDPR applies or whether a deployment complies with it. The controller or processor remains responsible for the complete processing operation and should obtain qualified legal or data-protection advice where appropriate.
 
-## ✅ GDPR Articles Covered by PrivacyGuard
+Last reviewed: 22 September 2026.
 
-| Article | Requirement | PrivacyGuard Solution |
-|---------|------------|----------------------|
-| **Article 5(1)(a)** | Lawfulness, fairness, transparency | On-device processing, no data transmission |
-| **Article 5(1)(b)** | Purpose limitation | Anonymizes only specified classes (faces, plates) |
-| **Article 5(1)(c)** | Data minimization | Blurs before storing/transmitting |
-| **Article 5(1)(d)** | Accuracy | 95%+ detection accuracy (YOLOv8-nano) |
-| **Article 5(1)(e)** | Storage limitation | No cloud logs, local processing only |
-| **Article 5(1)(f)** | Integrity & confidentiality | Secure on-device encryption ready |
-| **Article 32** | Security measures | Edge inference, no external APIs |
-| **Article 33** | Breach notification | No breach risk (data never leaves device) |
+## What PrivacyGuard can contribute
 
-## 🔐 Data Processing Security
+PrivacyGuard can be configured to run a compatible ONNX detector locally and apply blur, pixelation, or solid masking to selected detected regions. This may support data-minimisation, privacy-by-design, and security objectives by reducing the visual information released downstream.
 
-### Zero-Trust Architecture
-```python
-# PrivacyGuard guarantees:
-# ✅ No API calls to external services
-# ✅ No data transmission to cloud
-# ✅ No analytics or telemetry
-# ✅ No model updates sent to servers
-# ✅ 100% local processing
-```
+That contribution is limited:
 
-### Metadata Protection
-```python
-from privacyguard.metadata import MetadataStripper
+- raw frames still enter the process and exist in device memory;
+- missed, occluded, incorrectly labelled, or out-of-distribution regions will not be masked correctly;
+- video context, clothing, gait, audio, timestamps, location, metadata, or other indirect identifiers may still identify a person;
+- blur and pixelation are not encryption, and no masking method proves that output is anonymous;
+- model choice, class mapping, thresholds, input quality, and masking configuration materially affect the result;
+- optional operation logs document software events, not legal compliance.
 
-# Remove all identifying metadata
-stripper = MetadataStripper()
-stripper.strip_image("photo_with_metadata.jpg", "clean_photo.jpg")
-# Removes: EXIF, GPS, camera model, timestamp, device ID
-```
+The [ICO’s anonymisation guidance](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/data-sharing/anonymisation/how-do-we-ensure-anonymisation-is-effective/) explains that identifiability must be assessed in context. Treat processed output as personal data unless a documented assessment supports a different conclusion.
 
-## 📋 Implementation Checklist
+## What the library does not provide
 
-- [ ] **Privacy Notice**: Updated website to disclose local video anonymization
-- [ ] **Data Retention**: Define how long anonymized videos are kept (recommend: 30 days)
-- [ ] **User Consent**: Obtain consent for video processing (include in terms)
-- [ ] **Access Controls**: Limit who can access anonymized footage
-- [ ] **Encryption**: Encrypt storage at rest (`AES-256`)
-- [ ] **Audit Logs**: Log all access to anonymized data
-- [ ] **Breach Response**: Document response plan if system compromised
-- [ ] **Data Subject Rights**: Enable users to request video deletion
+PrivacyGuard does not select a lawful basis or purpose, issue privacy notices, collect or manage consent, answer data-subject requests, set retention periods, encrypt storage, control user access, manage processor contracts, govern international transfers, perform breach notification, or complete a data-protection impact assessment.
 
-## 🎯 Risk Assessment: No Personal Data Transmission
+It also does not guarantee that a deployment has no network calls. Evaluate the complete application, operating system, model delivery process, monitoring stack, storage, and infrastructure—not only this package.
 
-**Before PrivacyGuard:**
-```
-Video → Cloud API → Stored in US servers → GDPR Violation!
-```
+## Deployment checklist
 
-**With PrivacyGuard:**
-```
-Video → Local Blur → Anonymized video → Safe to store/transmit
-```
+### 1. Scope and accountability
 
-**Result:** No personal data in motion = No GDPR Article 5-32 violations
+- [ ] Identify the controller, processors, sub-processors, system owner, and data-protection contact.
+- [ ] Document the processing purpose, affected people, data categories, sources, recipients, locations, and lifecycle.
+- [ ] Determine the applicable jurisdictions and lawful basis with qualified advice.
+- [ ] Maintain the required processing records and contracts for the complete system.
+- [ ] Assign an owner and review date for this assessment.
 
-## 📄 Data Processing Agreement (DPA) Template
+### 2. Necessity, proportionality, and transparency
 
-```
-Data Controller: [Your Company]
-Data Processor: None (local processing, no third parties)
-Processing Activity: Video anonymization on-device
-Data Categories: Video frames (faces, license plates)
-Processing Duration: [Specify retention period]
-Security Measures: PrivacyGuard edge inference with local storage
+- [ ] Confirm that video processing is necessary for the stated purpose and that a less intrusive approach is insufficient.
+- [ ] Limit cameras, capture areas, resolution, frame rate, classes, outputs, and retention to what the purpose requires.
+- [ ] Provide accurate notices describing raw capture, local processing, masking limits, storage, recipients, and rights.
+- [ ] Do not describe output as anonymous without a documented identifiability assessment.
+- [ ] Do not describe PrivacyGuard as making a system GDPR compliant.
 
-Conclusion: Local processing eliminates cloud data transmission risks.
-```
+### 3. Risk assessment and data protection by design
 
-## 🏥 Special Case: HIPAA Compliance (Healthcare)
+- [ ] Determine whether a data-protection impact assessment is required, including for systematic monitoring or other processing likely to create high risk.
+- [ ] Map raw and processed data through capture, memory, temporary files, queues, logs, backups, exports, and downstream services.
+- [ ] Record foreseeable harms from missed detections, incorrect masking, misuse, re-identification, unauthorized access, and service failure.
+- [ ] Define human review, degraded-mode behavior, escalation, and shutdown procedures.
+- [ ] Reassess the system when models, cameras, purposes, recipients, or infrastructure change.
 
-```python
-from privacyguard import PrivacyGuard
-from privacyguard.detectors.document import DocumentDetector
+### 4. Detection and masking validation
 
-# Healthcare use case: Anonymize patient identifiers in records
-guard = PrivacyGuard("yolov8-face.onnx")
-doc_detector = DocumentDetector()
+- [ ] Freeze the model file and hash, label mapping, thresholds, input size, masking method, padding, and software version.
+- [ ] Evaluate representative footage across relevant lighting, distance, angle, motion, occlusion, demographics, environments, and camera types.
+- [ ] Record false negatives separately for each protected class; an aggregate score can hide unsafe failure modes.
+- [ ] Inspect processed output for remaining direct and indirect identifiers.
+- [ ] Define acceptance criteria and preserve the evaluation dataset, notebook or script, results, and reviewer sign-off.
+- [ ] Repeat validation after material configuration or environment changes.
 
-# Blur faces and ID numbers before storage
-result = guard.process_image("patient_record.jpg", "anonymized.jpg")
-```
+### 5. Security and operations
 
-**HIPAA Article 164.512(i):** De-identification safe harbor requires removal of:
-- ✅ Names
-- ✅ Geographic subdivisions
-- ✅ Dates
-- ✅ Medical record numbers
-- ✅ Faces (use PrivacyGuard!)
+- [ ] Apply access control, authentication, encryption in transit and at rest, secret management, patching, backup protection, and secure deletion outside this library.
+- [ ] Verify actual outbound traffic and dependencies at the deployment boundary; do not infer them from the library description.
+- [ ] Keep raw inputs only where necessary, with an approved retention and deletion process covering caches and backups.
+- [ ] Avoid placing unnecessary personal data in filenames, operation logs, alerts, or monitoring systems.
+- [ ] Test incident detection, containment, recovery, notification assessment, and evidence preservation.
+- [ ] Regularly test whether technical and organisational controls remain effective.
 
-## 📊 Audit Report Template
+### 6. Rights and ongoing governance
 
-```markdown
-# Privacy Audit Report
+- [ ] Provide processes for applicable access, erasure, objection, restriction, rectification, and portability requests.
+- [ ] Ensure stored media can be located and acted on without collecting unnecessary new identifiers.
+- [ ] Document exceptions and decisions rather than assuming masked output falls outside the GDPR.
+- [ ] Train operators on detection limits and prohibit claims that the tool guarantees anonymity or compliance.
 
-**Organization:** [Your Company]
-**Date:** [ISO 8601 date]
-**Auditor:** [Name]
+## Suggested technical assessment record
 
-## Processing Activity
-- **System:** PrivacyGuard Edge AI
-- **Data Type:** Video surveillance
-- **Processing:** Face/license plate anonymization
-- **Location:** On-device, [Specific location/device]
-- **Retention:** 30 days
+Record at least:
 
-## Compliance Status
-- [x] GDPR Article 5: Lawfulness ✅
-- [x] GDPR Article 32: Security ✅
-- [x] No data transmission to third parties ✅
-- [x] Audit logs enabled ✅
-- [x] Encryption at rest ✅
+- deployment owner, purpose, locations, camera and input specifications;
+- model source, file hash, supported classes, label mapping, and software version;
+- thresholds, input dimensions, padding, and masking method;
+- evaluation dataset scope, conditions, false negatives, false positives, and reviewer;
+- raw and processed data flows, external dependencies, storage, logs, recipients, and transfers;
+- access controls, encryption, retention, deletion, backup, and incident procedures;
+- DPIA or legal-review reference, unresolved risks, approval decision, and next review date.
 
-## Conclusion
-PrivacyGuard deployment is compliant with GDPR requirements.
-No violations detected.
+## Safe public wording
 
-**Risk Level:** LOW (no personal data transmission)
-```
+Accurate wording describes the configuration and its limits, for example:
 
-## 🚀 Deployment for GDPR
+> PrivacyGuard can process frames locally and apply configurable masking to detected regions. Detection failures and contextual identifiers may remain. The component does not by itself establish anonymity or legal compliance.
 
-```bash
-# 1. Deploy on-device
-docker run -d \
-  -v /path/to/models:/models \
-  -v /path/to/videos:/videos \
-  privacyguard:latest
+Avoid claims such as “GDPR compliant,” “anonymous by default,” “zero breach risk,” or “no personal data” unless a qualified, deployment-specific assessment supports the exact statement.
 
-# 2. Enable audit logging
-export PRIVACYGUARD_AUDIT_LOG=/var/log/privacyguard_audit.log
-export PRIVACYGUARD_ENCRYPTION=AES256
+## Official references
 
-# 3. Verify no external calls
-tcpdump -i eth0 | grep -E "cloud|api|external"
-# Should be empty!
+- [Regulation (EU) 2016/679 — official consolidated text](https://eur-lex.europa.eu/eli/reg/2016/679/)
+- [ICO: How do we ensure anonymisation is effective?](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/data-sharing/anonymisation/how-do-we-ensure-anonymisation-is-effective/)
+- [ICO: Pseudonymisation](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/data-sharing/anonymisation/pseudonymisation/)
+- [European Data Protection Board documents](https://www.edpb.europa.eu/our-work-tools/documents/our-documents_en)
 
-# 4. Monitor compliance
-privacyguard-compliance-check --report audit.pdf
-```
-
-## 📖 References
-
-- [GDPR Official Text](https://gdpr-info.eu/)
-- [Privacy by Design](https://ico.org.uk/for-organisations/guide-to-data-protection/guide-to-the-general-data-protection-regulation-gdpr/accountability-and-governance/data-protection-by-design-and-default/)
-- [EDPB Guidelines](https://edpb.ec.europa.eu/our-work-tools/documents_en)
+Recheck applicable law and regulator guidance before relying on this checklist.
