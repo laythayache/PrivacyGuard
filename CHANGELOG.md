@@ -33,16 +33,17 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   - metadata filename sanitization
   - profiler empty-run stability
 
-## [0.2.0] - 2025-01-XX
+## [0.2.0] - 2026-02-15
 
 ### Added
 - Enterprise module: audit logging, batch processing, real-time monitoring, custom region masking.
 - Regional Arabic detectors (plate/text/document).
 - Ensemble detection support.
-- Compliance watermarking.
+- Processing-status watermarking. Legacy API names containing `Compliance`
+  remain as compatibility aliases and do not assert legal compliance.
 - Profiling and metadata stripping utilities.
 
-## [0.1.0] - 2025-01-XX
+## [0.1.0] - 2026-02-15
 
 ### Added
 - Initial release.

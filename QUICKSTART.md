@@ -1,12 +1,16 @@
 ﻿# Quick Start
 
-## Install
+## Install from source
 
 ```bash
-pip install privacyguard
+git clone https://github.com/laythayache/privacyguard.git
+cd privacyguard
+pip install -e .
 ```
 
-## Real-time webcam anonymization
+PrivacyGuard is not currently published as a verified package on PyPI.
+
+## Live webcam masking
 
 ```python
 from privacyguard import PrivacyGuard
@@ -22,7 +26,7 @@ from privacyguard import PrivacyGuard
 
 guard = PrivacyGuard("model.onnx", method="pixelate")
 detections = guard.process_image("input.jpg", "output.jpg")
-print(f"Anonymized {len(detections)} regions")
+print(f"Masked {len(detections)} detected regions")
 ```
 
 ## Process a video file

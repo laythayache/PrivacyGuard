@@ -56,11 +56,8 @@ Masking quality depends on detection quality. Missed or heavily occluded regions
 
 ## Installation
 
-```bash
-pip install privacyguard
-```
-
-**From source (development):**
+PrivacyGuard is not currently published as a verified package on PyPI. Install
+the public repository from source:
 
 ```bash
 git clone https://github.com/laythayache/privacyguard.git
@@ -71,7 +68,7 @@ pip install -e ".[dev]"
 **GPU acceleration (optional):**
 
 ```bash
-pip install privacyguard[gpu]
+pip install -e ".[gpu]"
 ```
 
 ### Requirements
@@ -83,7 +80,7 @@ pip install privacyguard[gpu]
 
 ## Quick Start
 
-### 3-Line Real-Time Anonymization
+### 3-Line Live Webcam Masking
 
 ```python
 from privacyguard import PrivacyGuard
@@ -157,12 +154,15 @@ privacyguard model.onnx -s input.mp4 -m pixelate -o output.mp4
 privacyguard model.onnx -s "rtsp://192.168.1.10:554/stream" --no-display -o recording.mp4
 ```
 
-## Regional Detectors (Arabic/Lebanese)
+## Experimental Regional Processing
 
-PrivacyGuard includes **specialized detectors for the Middle East market**:
+PrivacyGuard includes experimental modules for Arabic plate, text, document,
+and mixed-script workflows. They require deployment-specific models and
+validation; their presence in the repository is not evidence of accuracy on a
+particular country's plates, documents, scripts, or camera conditions.
 
-### Arabic License Plate Detection
-Detect and anonymize Arabic and Latin script license plates common in Lebanon and the Gulf.
+### Arabic License Plate Processing
+Use a compatible custom model and optional format heuristics for plate regions.
 
 ```python
 from privacyguard.detectors.arabic_plate import ArabicPlateDetector, PlateConfig
@@ -172,12 +172,11 @@ detector = ArabicPlateDetector(config)
 detections = detector.detect(frame)
 ```
 
-**Features:**
-- Detects both Arabic (ش-ي) and Latin (A-Z) script plates
-- Script-aware confidence weighting
-- Lebanese plate format validation (2:1 aspect ratio)
+The supplied module does not include a validated plate model or a published
+regional benchmark. Verify the model labels, format assumptions, and false
+negatives against representative footage.
 
-### Arabic Text Detection & Anonymization
+### Arabic Text Detection and Masking
 Detect and blur Arabic text regions while preserving visual context (for bilingual documents).
 
 ```python
@@ -194,7 +193,7 @@ result = detector.anonymize_text(frame)
 - Per-script selective blurring
 - Document-aware processing
 
-### Identity Document Anonymization
+### Identity Document Masking
 Selectively blur ID cards, passports, and driving licenses while **preserving face visibility** for recognition.
 
 ```python
@@ -228,7 +227,7 @@ result = processor.process_mixed_document(
 - `examples/arabic_text_anonymization.py` — Text region anonymization
 - `examples/document_anonymization.py` — Selective document blur
 
-## Enterprise Features
+## Operational Helpers
 
 ## 📚 API Reference
 
@@ -241,7 +240,8 @@ See [API Reference](src/privacyguard/api_reference.md) for full class/method doc
 - Status watermarking and persistent region masking
 
 
-PrivacyGuard includes **enterprise-oriented capabilities** that are free and open-source:
+PrivacyGuard includes optional helpers for logging software operations, batch
+processing, runtime monitoring, and fixed-region masking:
 
 ### Audit Logging
 Record masking operations for operational review:
@@ -299,7 +299,7 @@ for frame in stream:
 ```
 
 ### Custom Region Masking (Flexibility)
-Define zones that should always be anonymized:
+Define zones that should always be masked:
 
 ```python
 from privacyguard.enterprise import CustomRegionMasker
@@ -337,25 +337,19 @@ Files in the `compliance/` directory are preliminary engineering checklists. The
 
 ---
 
-## 🌍 Community-First & Always Free
+## Open-source project
 
-**PrivacyGuard will always be free and open-source.**
-
-Privacy is a human right, not a luxury good. We're building a movement to make privacy accessible for everyone—not a business to extract profit.
-
-### Why Free?
-- **No barriers:** Startups, nonprofits, individuals can implement privacy immediately
-- **No vendor lock-in:** You own your infrastructure, code, and data
-- **Transparent security:** Code auditable by anyone, no hidden business agendas
-- **Community-driven:** Everyone contributes improvements
+The current public code is available under the MIT License. That makes the
+implementation inspectable and permits modification and commercial use subject
+to the license; it does not by itself establish security, privacy, adoption, or
+fitness for a deployment.
 
 ### How You Can Help
 - **Use it:** Evaluate it against your own footage, threat model, and deployment requirements
 - **Contribute:** Code, documentation, examples, translations
-- **Share:** Tell others about privacy-first design
-- **Advocate:** Help shift global privacy culture
+- **Share:** Publish reproducible measurements and documented limitations
 
-**Learn more:** See [COMMUNITY_FIRST.md](COMMUNITY_FIRST.md) for our sustainable model without monetization.
+**Learn more:** See [COMMUNITY_FIRST.md](COMMUNITY_FIRST.md) for project scope and contribution guidance.
 
 ---
 
@@ -433,8 +427,8 @@ See the [`examples/`](examples/) directory:
 
 1. **Start with a small model** when latency and device resources are constrained, then validate detection quality
 2. **Reduce `input_size`** to `(320, 320)` to improve throughput at the cost of detection detail
-3. **Install `onnxruntime-gpu`** for NVIDIA GPUs (automatic provider selection)
-4. **Target specific classes** to skip unnecessary post-processing
+3. **Evaluate an accelerated ONNX Runtime provider** when the deployment hardware supports it
+4. **Limit downstream masking work** to the classes the deployment requires
 
 ## Contributing
 

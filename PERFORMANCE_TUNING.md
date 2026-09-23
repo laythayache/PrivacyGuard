@@ -1,264 +1,131 @@
-# Performance Tuning Guide
+# Performance Tuning and Benchmarking
 
-PrivacyGuard is designed to run efficiently on edge devices from Raspberry Pi to modern servers. This guide helps you optimize performance for your use case.
+PrivacyGuard does not publish a universal FPS claim. Throughput depends on the
+complete configuration: hardware, runtime provider, model artifact, model input
+size, source resolution and codec, masking method, number and size of detected
+regions, display and output encoding, and what the measurement includes.
 
-## Understanding the Tradeoffs
+## Historical result and its boundary
 
-Privacy de-identification involves a tradeoff between **speed**, **accuracy**, and **visual quality**. Choose the right settings for your needs.
+A historical controlled internal run was described as reaching approximately
+25–30 FPS. The retained repository and project history do not record enough
+information to reproduce that result. In particular, they do not preserve a
+signed-off record of the exact device, model file and hash, ONNX Runtime
+provider, source footage, warm-up, frame count, masking configuration, output
+encoding, or whether capture and display were included.
 
-### Input Size vs Speed vs Accuracy
+Treat 25–30 FPS only as a narrow historical implementation result. It is not a
+Raspberry Pi 4 guarantee, a result for every YOLOv8-nano model, or a performance
+claim for an arbitrary deployment.
 
-The model input size is the primary determinant of speed. Larger inputs give better accuracy but process slower.
+## What to record
 
-| input_size | RPi 4 FPS | x86 FPS | Accuracy | Use Case |
-|------------|-----------|---------|----------|----------|
-| (320, 320) | ~50 | ~180 | Low | Motion detection, counting, lowest latency |
-| (416, 416) | ~35 | ~120 | Medium | Balanced (recommended for edge) |
-| (640, 640) | ~25 | ~90 | High | Default, production, good accuracy |
-| (1280, 1280) | ~8 | ~30 | Very High | Offline batch processing, maximum accuracy |
+A useful benchmark report should include:
 
-**Recommendation:** Start with (416, 416) for edge devices, (640, 640) for production servers.
+- CPU, GPU or accelerator model, RAM, operating system, and power mode;
+- Python, OpenCV, ONNX Runtime, and PrivacyGuard versions;
+- ONNX Runtime execution provider;
+- model name, source, file hash, labels, and input size;
+- source resolution, codec, frame rate, and representative footage description;
+- confidence and IoU thresholds, target classes, padding, and masking method;
+- warm-up frames, measured frames, number of runs, and aggregation method;
+- whether timing covers inference only, masking, capture, display, and encoding;
+- mean, median, p95 latency, throughput, and any dropped frames; and
+- a separate detection-quality evaluation on representative footage.
 
-### Anonymization Methods
+FPS does not measure whether the correct regions were detected or masked.
+Performance and masking quality must be evaluated separately.
 
-Different anonymization methods have different speed/quality tradeoffs.
+## Reproducible measurement template
 
-| Method | Speed | CPU Load | Privacy Level | Visual Quality | Use Case |
-|--------|-------|----------|---------------|----------------|----------|
-| **solid** | ~0.1ms/region | Minimal | Maximum | Lowest | Critical privacy, public spaces |
-| **pixelate** | ~0.5ms/region | Low | High | Medium | Balanced, most use cases |
-| **gaussian** | ~2-3ms/region | Higher | Medium | Highest | Preserving context, visual appeal |
-
-**Recommendation:** Use `pixelate` as default; use `solid` for maximum privacy; use `gaussian` for aesthetics.
-
-### Confidence Threshold Tuning
-
-Confidence threshold controls detection sensitivity.
-
-| Threshold | Precision | Recall | Use Case |
-|-----------|-----------|--------|----------|
-| **0.3** | Low (~80%) | Very High (~99%) | Critical privacy - detect everything |
-| **0.5** | Balanced (~90%) | High (~95%) | Default - good balance |
-| **0.7** | High (~96%) | Medium (~80%) | Reduce false positives |
-| **0.85** | Very High (~99%) | Low (~60%) | Only confident detections |
-
-**Recommendation:** Use 0.5 for production; use 0.3 for critical privacy scenarios.
-
-### IOU Threshold Tuning
-
-IOU (Intersection over Union) threshold controls duplicate detection suppression.
-
-- **0.3**: Aggressive suppression, fewer overlaps (fewer anonymizations)
-- **0.45**: Default, balanced suppression
-- **0.6**: Lenient suppression, more overlapping boxes kept
-
-**Recommendation:** Keep at 0.45 default unless you see duplicate boxes.
-
-## GPU Acceleration
-
-GPU acceleration provides 5-10x speedup on NVIDIA GPUs.
-
-### NVIDIA GPU Setup
-
-```bash
-# Install GPU-accelerated ONNX Runtime
-pip install onnxruntime-gpu
-
-# PrivacyGuard will automatically use GPU if available
-guard = PrivacyGuard("model.onnx")
-# Uses CUDA if available, falls back to CPU
-```
-
-**Expected Performance:**
-- RTX 3090: ~200 FPS at 640×640
-- RTX 2080: ~150 FPS at 640×640
-- GTX 1080: ~120 FPS at 640×640
-- CPU (Ryzen 5600X): ~90 FPS at 640×640
-
-### Automatic Provider Selection
-
-PrivacyGuard tries providers in this order:
-1. CUDA (NVIDIA GPU)
-2. CoreML (Apple Neural Engine)
-3. CPU (fallback)
-
-You can override with:
-```python
-guard = PrivacyGuard(
-    "model.onnx",
-    providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
-)
-```
-
-## Real-Time Performance Tips
-
-### 1. Use YOLOv8-Nano or YOLOv8-Small
-
-- **YOLOv8n**: ~25 FPS on RPi4 (fastest, good accuracy)
-- **YOLOv8s**: ~12 FPS on RPi4 (better accuracy, slower)
-- **YOLOv8m**: ~4 FPS on RPi4 (much slower, diminishing returns)
-
-**Use YOLOv8-nano for edge, consider small for servers.**
-
-### 2. Reduce Input Size for Edge Devices
+Use real, representative frames and freeze the configuration before reporting a
+result. The following example measures detection and masking only; it excludes
+camera capture, display, and output encoding.
 
 ```python
-# For Raspberry Pi: 416×416 gives 35 FPS
-guard = PrivacyGuard("model.onnx", input_size=(416, 416))
-
-# For servers: 640×640 gives good accuracy
-guard = PrivacyGuard("model.onnx", input_size=(640, 640))
-```
-
-### 3. Use Target Classes to Skip Unnecessary Detections
-
-```python
-# Only anonymize faces, skip license plates
-guard = PrivacyGuard(
-    "model.onnx",
-    target_classes=[0],  # 0=face, 1=license_plate
-)
-# ~30% speedup by skipping post-processing
-```
-
-### 4. Use Pixelate for Streaming
-
-Gaussian blur is expensive. Use pixelate for real-time streaming:
-
-```python
-guard = PrivacyGuard("model.onnx", method="pixelate")
-# ~3x faster than Gaussian, still good privacy
-```
-
-### 5. Reduce Extra Work in Batch Loops
-
-```python
-# Reuse one guard instance and keep per-frame logic minimal
-guard = PrivacyGuard("model.onnx", method="pixelate")
-for frame in frames:
-    result = guard.process_frame(frame)
-```
-
-### 6. Adjust Padding If Needed
-
-```python
-# Reduce padding for speed (default is 0)
-guard = PrivacyGuard("model.onnx", padding=0)  # No expansion
-
-# Increase padding for coverage
-guard = PrivacyGuard("model.onnx", padding=10)  # Expand by 10px (slower)
-```
-
-## Batch Processing Performance
-
-For processing many files offline, use BatchProcessor:
-
-```python
-from privacyguard.enterprise import BatchProcessor
-
-processor = BatchProcessor(
-    "model.onnx",
-    output_dir="anonymized/",
-)
-
-results = processor.process_directory("images/", pattern="*.jpg")
-print(f"Processed {results['successful']} files in {results['total_time_sec']:.1f}s")
-```
-
-**Tips:**
-- Use 640×640+ for batch processing (speed is less critical)
-- Consider running on GPU if available
-- Process multiple files sequentially
-
-## Memory Optimization
-
-For long-running streams, monitor memory usage:
-
-```python
-from privacyguard.enterprise import RealTimeMonitor
-
-monitor = RealTimeMonitor()
-
-for frame in stream:
-    start = time.time()
-    result = guard.process_frame(frame)
-    elapsed_ms = (time.time() - start) * 1000
-
-    monitor.record_frame(elapsed_ms, len(detections))
-
-    if monitor.should_alert(fps_threshold=20):
-        print(f"Performance degraded: {monitor.get_stats()}")
-```
-
-## Optimization Checklist
-
-- [ ] Use YOLOv8-nano (not -small or -medium)
-- [ ] Set `input_size=(416,416)` for Raspberry Pi, `(640,640)` for servers
-- [ ] Set `conf_threshold=0.5` (or 0.3 for critical privacy)
-- [ ] Use `target_classes` to skip unnecessary detections
-- [ ] Use `method="pixelate"` for real-time (faster than Gaussian)
-- [ ] Enable GPU with `onnxruntime-gpu` if available
-- [ ] Monitor performance with `RealTimeMonitor`
-- [ ] Profile on target hardware (RPi, server, GPU, etc.)
-
-## Expected Performance Summary
-
-### Raspberry Pi 4 (Default Model)
-- **YOLOv8-nano at 416×416, pixelate:** ~35 FPS
-- **YOLOv8-nano at 640×640, pixelate:** ~25 FPS
-- **YOLOv8-nano at 640×640, gaussian:** ~12 FPS
-
-### Desktop CPU (Ryzen 5600X)
-- **YOLOv8-nano at 640×640, pixelate:** ~90 FPS
-- **YOLOv8-small at 640×640, pixelate:** ~50 FPS
-- **YOLOv8-small at 640×640, gaussian:** ~30 FPS
-
-### NVIDIA RTX 3090 GPU
-- **YOLOv8-nano at 1280×1280, gaussian:** ~200 FPS
-- **YOLOv8-small at 1280×1280, gaussian:** ~180 FPS
-
-## Benchmarking Your Setup
-
-```python
+import hashlib
+import platform
+import statistics
 import time
-from privacyguard import PrivacyGuard
+from pathlib import Path
+
 import cv2
-import numpy as np
+import onnxruntime as ort
 
-guard = PrivacyGuard("model.onnx", input_size=(640, 640))
+from privacyguard import PrivacyGuard
 
-# Create dummy frames
-frames = [np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8) for _ in range(100)]
+model_path = Path("model.onnx")
+video_path = Path("representative-input.mp4")
+warmup_frames = 20
+measured_frames = 300
 
-start = time.time()
-for frame in frames:
+guard = PrivacyGuard(
+    model_path=model_path,
+    input_size=(640, 640),
+    method="pixelate",
+    conf_threshold=0.4,
+    iou_threshold=0.45,
+    padding=0,
+)
+
+cap = cv2.VideoCapture(str(video_path))
+latencies_ms = []
+
+for index in range(warmup_frames + measured_frames):
+    ok, frame = cap.read()
+    if not ok:
+        break
+
+    started = time.perf_counter()
     guard.process_frame(frame)
-elapsed = time.time() - start
+    elapsed_ms = (time.perf_counter() - started) * 1000
 
-fps = len(frames) / elapsed
-print(f"Performance: {fps:.1f} FPS ({elapsed:.1f}s for 100 frames)")
+    if index >= warmup_frames:
+        latencies_ms.append(elapsed_ms)
+
+cap.release()
+
+if not latencies_ms:
+    raise RuntimeError("No frames were measured")
+
+elapsed_seconds = sum(latencies_ms) / 1000
+fps = len(latencies_ms) / elapsed_seconds if elapsed_seconds else 0.0
+p95_index = max(0, round(0.95 * len(latencies_ms)) - 1)
+
+print({
+    "platform": platform.platform(),
+    "providers": ort.get_available_providers(),
+    "model_sha256": hashlib.sha256(model_path.read_bytes()).hexdigest(),
+    "frames": len(latencies_ms),
+    "input_size": [640, 640],
+    "method": "pixelate",
+    "mean_ms": statistics.fmean(latencies_ms),
+    "median_ms": statistics.median(latencies_ms),
+    "p95_ms": sorted(latencies_ms)[p95_index],
+    "fps": fps,
+})
 ```
 
-## Troubleshooting Performance Issues
+Run the test several times after the device reaches a steady thermal state. Do
+not compare results that include different pipeline stages without labelling the
+difference.
 
-### GPU Not Used
-```python
-# Check which provider is being used
-provider = guard.detector.session.get_providers()
-print(provider)  # Should include CUDA if GPU installed
-```
+## Tuning sequence
 
-### Still Slow on GPU
-- Check NVIDIA drivers: `nvidia-smi`
-- Verify CUDA is installed: `pip list | grep cuda`
-- Try forcing CPU for comparison
+1. Choose a model whose labels and output format match the deployment.
+2. Establish detection-quality acceptance criteria on representative footage.
+3. Measure a frozen baseline configuration.
+4. Try a smaller model or input size and re-evaluate both speed and false
+   negatives.
+5. Compare masking methods with the expected number and size of regions.
+6. Test the actual capture, display, and encoding path when end-to-end latency
+   matters.
+7. Re-run the benchmark on the deployment hardware after every material model,
+   runtime, or configuration change.
 
-### Memory Errors
-- Reduce `input_size` to (416, 416)
-- Process fewer frames per batch
-- Enable in-place processing
+Potential optimizations are configuration-dependent. A smaller input can improve
+throughput but may reduce detection detail. A smaller model can reduce inference
+cost but may miss difficult regions. GPU or accelerator providers can help only
+when the installed runtime, model, and hardware support them.
 
-### Inconsistent FPS
-- Disable thermal throttling (if safe)
-- Close background applications
-- Use dedicated GPU (not integrated graphics)
+See [BENCHMARKS.md](BENCHMARKS.md) for the shorter reporting checklist.

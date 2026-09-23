@@ -7,6 +7,16 @@ This repository does not ship a fixed benchmark dataset, so absolute FPS numbers
 - anonymization method (`gaussian`, `pixelate`, `solid`)
 - stream resolution and codec settings
 
+## Historical result
+
+A historical controlled internal run was described as reaching approximately
+25–30 FPS. The retained repository does not preserve enough configuration and
+measurement detail to reproduce it. Do not attribute that number to Raspberry
+Pi 4, a particular model, or an arbitrary deployment.
+
+See [PERFORMANCE_TUNING.md](PERFORMANCE_TUNING.md) for the missing fields, a
+measurement template, and the boundary on that historical observation.
+
 ## Reproduce locally
 
 Use the built-in profiler to measure your own workload:
@@ -43,3 +53,8 @@ When sharing results, include:
 - ONNX Runtime provider (`CPUExecutionProvider`, `CUDAExecutionProvider`, etc.)
 - model name and input size
 - anonymization method and confidence threshold
+- model file hash and class mapping
+- source resolution, codec, and representative footage description
+- warm-up, frame count, run count, and whether capture/display/encoding are timed
+- latency distribution and dropped frames, not only average FPS
+- separate detection-quality results for each protected class
