@@ -28,7 +28,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.24",
-    "opencv-python>=4.8",
+    "opencv-python>=4.8,<5",
     "onnxruntime>=1.16",
 ]
 
@@ -38,7 +38,7 @@ dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
     "ruff>=0.4",
-    "mypy>=1.8",
+    "mypy>=1.8,<1.19",
 ]
 
 [project.urls]
