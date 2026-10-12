@@ -9,10 +9,9 @@ This repository does not ship a fixed benchmark dataset, so absolute FPS numbers
 
 ## Historical result
 
-A historical controlled internal run was described as reaching approximately
-25–30 FPS. The retained repository does not preserve enough configuration and
-measurement detail to reproduce it. Do not attribute that number to Raspberry
-Pi 4, a particular model, or an arbitrary deployment.
+An earlier controlled internal run cannot be reproduced: the retained repository
+does not preserve enough configuration and measurement detail, so no throughput
+figure from it is published here.
 
 See [PERFORMANCE_TUNING.md](PERFORMANCE_TUNING.md) for the missing fields, a
 measurement template, and the boundary on that historical observation.
